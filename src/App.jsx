@@ -1,14 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './index.css'
 import Dashboard from './components/Dashboard'
 import EquipmentList from './components/EquipmentList'
 import UsersList from './components/UsersList'
 import HistoryLog from './components/HistoryLog'
+import Warehouse from './components/Warehouse'
 import { AppProvider, useAppContext } from './context/AppContext'
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('quickTrace_activeTab') || 'dashboard'
+  })
   const { appRole, setAppRole } = useAppContext()
+
+  useEffect(() => {
+    localStorage.setItem('quickTrace_activeTab', activeTab)
+  }, [activeTab])
 
   return (
     <div dir="rtl">
@@ -33,6 +40,7 @@ function AppContent() {
 
           <nav style={{ display: 'flex', gap: '10px' }}>
             <button className={`btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>דשבורד</button>
+            <button className={`btn ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => setActiveTab('warehouse')}>מחסן פעולות</button>
             <button className={`btn ${activeTab === 'equipment' ? 'active' : ''}`} onClick={() => setActiveTab('equipment')}>ציוד</button>
             <button className={`btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>משתמשים</button>
             <button className={`btn ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>היסטוריה</button>
@@ -42,6 +50,7 @@ function AppContent() {
 
       <main>
         {activeTab === 'dashboard' && <Dashboard />}
+        {activeTab === 'warehouse' && <Warehouse />}
         {activeTab === 'equipment' && <EquipmentList />}
         {activeTab === 'users' && <UsersList />}
         {activeTab === 'history' && <HistoryLog />}

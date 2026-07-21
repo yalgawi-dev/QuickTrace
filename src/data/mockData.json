@@ -1,0 +1,15 @@
+{
+  "users": [
+    { "id": "u1", "name": "ישראל ישראלי", "role": "וטרינר", "email": "israel@example.com", "phone": "050-1234567", "department": "רפתות מרכז", "isActive": true },
+    { "id": "u2", "name": "דנה לוי", "role": "עובד מעבדה", "email": "dana@example.com", "phone": "052-7654321", "department": "מעבדה ראשית", "isActive": true }
+  ],
+  "equipment": [
+    { "id": "e1", "type": "אולטראסאונד (easi-scan)", "device_sn": "ES-1001", "goggles_sn": "GOG-500", "batteries": 2, "status": "תקין", "notes": "", "purchaseDate": "2023-01-15", "warrantyExpiry": "2025-01-15", "nextCalibration": "2024-06-01", "currentUser": "u1" },
+    { "id": "e2", "type": "אולטראסאונד (IMV חוטי)", "device_sn": "IMV-202", "goggles_sn": "", "batteries": 1, "status": "מעקב", "notes": "כבל מעט שחוק", "purchaseDate": "2022-11-20", "warrantyExpiry": "2024-11-20", "nextCalibration": "2024-05-10", "currentUser": null },
+    { "id": "e3", "type": "אולטראסאונד (easi-scan go)", "device_sn": "ESG-305", "goggles_sn": "GOG-510", "batteries": 2, "status": "תקלה", "notes": "לא נדלק", "purchaseDate": "2024-02-01", "warrantyExpiry": "2026-02-01", "nextCalibration": "2024-08-01", "currentUser": null }
+  ],
+  "history": [
+    { "id": "h1", "date": "21/07/2026", "time": "08:30", "device_sn": "ES-1001", "employee": "ישראל ישראלי", "event": "קליטת ציוד (לקיחה)", "details": "נלקח לסיור ברפתות הדרום" },
+    { "id": "h2", "date": "19/07/2026", "time": "16:45", "device_sn": "IMV-202", "employee": "דנה לוי", "event": "החזרת ציוד - מעקב", "details": "הוחזר לאחר בדיקה, כבל שחוק דורש תשומת לב" }
+  ]
+}
