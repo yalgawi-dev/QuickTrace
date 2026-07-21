@@ -41,12 +41,21 @@ export const AppProvider = ({ children }) => {
     setHistory([{ ...event, id: `h${Date.now()}` }, ...history]);
   };
 
-  const checkoutEquipment = (deviceId, userId, notes) => {
+  const checkoutEquipment = (deviceId, userId, notes, manualDate = null, manualTime = null) => {
     const eq = equipment.find(e => e.id === deviceId);
     const user = users.find(u => u.id === userId);
     const now = new Date();
-    const dateStr = now.toLocaleDateString('he-IL');
-    const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    
+    // אם המשתמש הזין תאריך ידני (רטרו) נשתמש בו, אחרת שניקח את הנוכחי
+    let dateStr = manualDate;
+    if (!dateStr) dateStr = now.toLocaleDateString('he-IL');
+    else {
+      // המרת תאריך מפורמט YYYY-MM-DD ל- DD/MM/YYYY
+      const parts = dateStr.split('-');
+      if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    const timeStr = manualTime || now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
     // Update equipment
     setEquipment(equipment.map(e => e.id === deviceId ? { ...e, currentUser: userId, status: 'תקין', notes } : e));
@@ -62,12 +71,19 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const returnEquipment = (deviceId, status, notes) => {
+  const returnEquipment = (deviceId, status, notes, manualDate = null, manualTime = null) => {
     const eq = equipment.find(e => e.id === deviceId);
     const user = users.find(u => u.id === eq.currentUser);
     const now = new Date();
-    const dateStr = now.toLocaleDateString('he-IL');
-    const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    
+    let dateStr = manualDate;
+    if (!dateStr) dateStr = now.toLocaleDateString('he-IL');
+    else {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    const timeStr = manualTime || now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
     // Update equipment
     setEquipment(equipment.map(e => e.id === deviceId ? { ...e, currentUser: null, status, notes } : e));

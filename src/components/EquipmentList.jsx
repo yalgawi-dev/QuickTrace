@@ -6,12 +6,12 @@ const EquipmentList = () => {
   const { equipment, users, appRole, addEquipment, checkoutEquipment, returnEquipment } = useAppContext()
   
   const [showAddModal, setShowAddModal] = useState(false)
-  const [newEq, setNewEq] = useState({ type: 'easi-scan', device_sn: '', goggles_sn: '', batteries: 2, status: 'תקין', notes: '', purchaseDate: '', warrantyExpiry: '', nextCalibration: '', currentUser: null })
+  const [newEq, setNewEq] = useState({ type: 'easi-scan', customType: '', device_sn: '', goggles_sn: '', batteries: 2, status: 'תקין', notes: '', purchaseDate: '', warrantyExpiry: '', nextCalibration: '', currentUser: null })
   
   const [showActionModal, setShowActionModal] = useState(false)
   const [actionType, setActionType] = useState('checkout') // checkout or return
   const [selectedEqId, setSelectedEqId] = useState(null)
-  const [actionData, setActionData] = useState({ userId: '', notes: '', status: 'תקין' })
+  const [actionData, setActionData] = useState({ userId: '', notes: '', status: 'תקין', date: '', time: '' })
 
   const getStatusClass = (status) => {
     if (status === 'תקין') return 'status-ok'
@@ -32,20 +32,21 @@ const EquipmentList = () => {
 
   const handleAddSubmit = (e) => {
     e.preventDefault()
-    addEquipment(newEq)
+    const finalType = newEq.type === 'other' ? newEq.customType : newEq.type
+    addEquipment({ ...newEq, type: finalType })
     setShowAddModal(false)
-    setNewEq({ type: 'easi-scan', device_sn: '', goggles_sn: '', batteries: 2, status: 'תקין', notes: '', purchaseDate: '', warrantyExpiry: '', nextCalibration: '', currentUser: null })
+    setNewEq({ type: 'easi-scan', customType: '', device_sn: '', goggles_sn: '', batteries: 2, status: 'תקין', notes: '', purchaseDate: '', warrantyExpiry: '', nextCalibration: '', currentUser: null })
   }
 
   const handleActionSubmit = (e) => {
     e.preventDefault()
     if (actionType === 'checkout') {
-      checkoutEquipment(selectedEqId, actionData.userId, actionData.notes)
+      checkoutEquipment(selectedEqId, actionData.userId, actionData.notes, actionData.date, actionData.time)
     } else {
-      returnEquipment(selectedEqId, actionData.status, actionData.notes)
+      returnEquipment(selectedEqId, actionData.status, actionData.notes, actionData.date, actionData.time)
     }
     setShowActionModal(false)
-    setActionData({ userId: '', notes: '', status: 'תקין' })
+    setActionData({ userId: '', notes: '', status: 'תקין', date: '', time: '' })
   }
 
   const openAction = (type, eqId) => {
@@ -72,47 +73,49 @@ const EquipmentList = () => {
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>מק"ט מכשיר</th>
-            <th>סוג</th>
-            <th>סוללות</th>
-            <th>משתמש נוכחי</th>
-            <th>סטטוס</th>
-            <th>ת. טיפול הבא</th>
-            <th>פעולות</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredEq.map(eq => (
-            <tr key={eq.id}>
-              <td style={{ fontWeight: 'bold' }}>{eq.device_sn} <br/><small style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>משקף: {eq.goggles_sn}</small></td>
-              <td>{eq.type}</td>
-              <td>{eq.batteries}</td>
-              <td style={{ color: eq.currentUser ? 'white' : 'var(--success)' }}>{getUserName(eq.currentUser)}</td>
-              <td>
-                <span className={`status-badge ${getStatusClass(eq.status)}`}>
-                  {eq.status}
-                </span>
-                {eq.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>{eq.notes}</div>}
-              </td>
-              <td style={{ fontSize: '0.85rem' }}>{eq.nextCalibration}</td>
-              <td>
-                {appRole === 'admin' ? (
-                  eq.currentUser ? (
-                    <button onClick={() => openAction('return', eq.id)} style={{ background: 'var(--warning)', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>החזרה ממקבל</button>
-                  ) : (
-                    <button onClick={() => openAction('checkout', eq.id)} style={{ background: 'var(--success)', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>שיוך לעובד</button>
-                  )
-                ) : (
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ללא הרשאה</span>
-                )}
-              </td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>מק"ט מכשיר</th>
+              <th>סוג</th>
+              <th>סוללות</th>
+              <th>משתמש נוכחי</th>
+              <th>סטטוס</th>
+              <th>ת. טיפול הבא</th>
+              <th>פעולות</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredEq.map(eq => (
+              <tr key={eq.id}>
+                <td style={{ fontWeight: 'bold' }}>{eq.device_sn} <br/><small style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>משקף: {eq.goggles_sn}</small></td>
+                <td>{eq.type}</td>
+                <td>{eq.batteries}</td>
+                <td style={{ color: eq.currentUser ? 'white' : 'var(--success)' }}>{getUserName(eq.currentUser)}</td>
+                <td>
+                  <span className={`status-badge ${getStatusClass(eq.status)}`}>
+                    {eq.status}
+                  </span>
+                  {eq.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', whiteSpace: 'normal', maxWidth: '200px' }}>{eq.notes}</div>}
+                </td>
+                <td style={{ fontSize: '0.85rem' }}>{eq.nextCalibration}</td>
+                <td>
+                  {appRole === 'admin' ? (
+                    eq.currentUser ? (
+                      <button onClick={() => openAction('return', eq.id)} style={{ background: 'var(--warning)', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>החזרה ממקבל</button>
+                    ) : (
+                      <button onClick={() => openAction('checkout', eq.id)} style={{ background: 'var(--success)', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>שיוך לעובד</button>
+                    )
+                  ) : (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ללא הרשאה</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Add Equipment Modal */}
       {showAddModal && (
@@ -120,27 +123,44 @@ const EquipmentList = () => {
           <div className="glass-panel" style={{ width: '450px', background: 'var(--background-dark)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3>הוספת ציוד חדש למלאי</h3>
             <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+              
               <select className="input-field" value={newEq.type} onChange={e => setNewEq({...newEq, type: e.target.value})}>
                 <option value="easi-scan">easi-scan</option>
                 <option value="easi-scan go">easi-scan go</option>
                 <option value="IMV חוטי">IMV חוטי</option>
+                <option value="other">אחר...</option>
               </select>
+              
+              {newEq.type === 'other' && (
+                <input required placeholder='הזן סוג מוצר חדש...' className="input-field" value={newEq.customType} onChange={e => setNewEq({...newEq, customType: e.target.value})} />
+              )}
+              
               <input required placeholder='מק"ט מכשיר (S/N)' className="input-field" value={newEq.device_sn} onChange={e => setNewEq({...newEq, device_sn: e.target.value})} />
               <input placeholder='מק"ט משקף (אופציונלי)' className="input-field" value={newEq.goggles_sn} onChange={e => setNewEq({...newEq, goggles_sn: e.target.value})} />
+              
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>מספר סוללות</label>
-                  <input type="number" className="input-field" style={{ width: '100%' }} value={newEq.batteries} onChange={e => setNewEq({...newEq, batteries: parseInt(e.target.value)})} />
+                  <input type="number" className="input-field" value={newEq.batteries} onChange={e => setNewEq({...newEq, batteries: parseInt(e.target.value)})} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תוקף אחריות</label>
-                  <input type="date" className="input-field" style={{ width: '100%' }} value={newEq.warrantyExpiry} onChange={e => setNewEq({...newEq, warrantyExpiry: e.target.value})} />
+                  <input type="date" className="input-field" value={newEq.warrantyExpiry} onChange={e => setNewEq({...newEq, warrantyExpiry: e.target.value})} />
                 </div>
               </div>
+              
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תאריך טיפול / כיול הבא</label>
-                <input type="date" className="input-field" style={{ width: '100%' }} value={newEq.nextCalibration} onChange={e => setNewEq({...newEq, nextCalibration: e.target.value})} />
+                <input type="date" className="input-field" value={newEq.nextCalibration} onChange={e => setNewEq({...newEq, nextCalibration: e.target.value})} />
               </div>
+              
+              <textarea 
+                placeholder="הערות התחלתיות (אופציונלי)" 
+                className="input-field" 
+                rows="2"
+                value={newEq.notes} 
+                onChange={e => setNewEq({...newEq, notes: e.target.value})} 
+              />
               
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="btn" style={{ flex: 1 }}>שמור ציוד</button>
@@ -154,10 +174,10 @@ const EquipmentList = () => {
       {/* Checkout / Return Modal */}
       {showActionModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="glass-panel" style={{ width: '400px', background: 'var(--background-dark)' }}>
+          <div className="glass-panel" style={{ width: '400px', background: 'var(--background-dark)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3>{actionType === 'checkout' ? 'שיוך ציוד לעובד (לקיחה)' : 'החזרת ציוד למחסן'}</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '15px' }}>
-              תאריך ושעת הפעולה יתועדו אוטומטית בהיסטוריה.
+              מלא את הפרטים. תוכל לשנות תאריך ושעה במידה ומדובר בנתון רטרואקטיבי.
             </p>
             <form onSubmit={handleActionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {actionType === 'checkout' && (
@@ -177,8 +197,19 @@ const EquipmentList = () => {
                 </select>
               )}
 
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תאריך (השאר ריק להיום)</label>
+                  <input type="date" className="input-field" value={actionData.date} onChange={e => setActionData({...actionData, date: e.target.value})} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>שעה (השאר ריק לעכשיו)</label>
+                  <input type="time" className="input-field" value={actionData.time} onChange={e => setActionData({...actionData, time: e.target.value})} />
+                </div>
+              </div>
+
               <textarea 
-                placeholder="הערות אירוע (תקלות מיוחדות, חוסרים...)" 
+                placeholder="הערות אירוע (תקלות מיוחדות, מצב סוללות חלשות, שברים...)" 
                 className="input-field" 
                 rows="3"
                 value={actionData.notes} 
