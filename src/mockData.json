@@ -1,0 +1,23 @@
+{
+  "users": [
+    { "id": "u1", "name": "בהא אלעוברה", "phone": "0522851348" },
+    { "id": "u2", "name": "עמי אוחיון", "phone": "0522851388" },
+    { "id": "u3", "name": "שי ביטון", "phone": "0522851369" },
+    { "id": "u4", "name": "נצר חביב", "phone": "0522851383" },
+    { "id": "u5", "name": "איתן טיומקין", "phone": "0522851354" }
+  ],
+  "equipment": [
+    { "id": "e1", "type": "easi-scan", "device_sn": "E22412018AC", "goggles_sn": "16015-02", "batteries": 2, "status": "תקין", "notes": "", "currentUser": "u1" },
+    { "id": "e2", "type": "easi-scan", "device_sn": "E22412012AC", "goggles_sn": "16703-07", "batteries": 2, "status": "מעקב", "notes": "סוללה חלשה", "currentUser": "u2" },
+    { "id": "e3", "type": "easi-scan", "device_sn": "ESGL0100049", "goggles_sn": "BGO01001791", "batteries": 4, "status": "תקלה", "notes": "משקף לא תקין ומכשיר בלוי", "currentUser": "u3" },
+    { "id": "e4", "type": "easi-scan", "device_sn": "E13409002AC", "goggles_sn": "16015-06", "batteries": 2, "status": "תקלה", "notes": "סוללות לא תקינות", "currentUser": "u4" },
+    { "id": "e5", "type": "easi-scan", "device_sn": "E22412020AC", "goggles_sn": "8933-10", "batteries": 2, "status": "תקלה", "notes": "מכשיר מקרטע", "currentUser": "u5" }
+  ],
+  "history": [
+    { "id": "h1", "date": "16/07/2026", "device_sn": "E22412018AC", "employee": "בהא אלעוזה", "event": "קליטת ציוד", "details": "יבוא מפיילוט" },
+    { "id": "h2", "date": "16/07/2026", "device_sn": "E22412012AC", "employee": "עמי ארנון", "event": "קליטת ציוד", "details": "יבוא מפיילוט" },
+    { "id": "h3", "date": "16/07/2026", "device_sn": "E22412012AC", "employee": "עמי ארנון", "event": "תקלה/מעקב", "details": "סוללה חלשה" },
+    { "id": "h4", "date": "16/07/2026", "device_sn": "ESGL0100049", "employee": "שי ביטון", "event": "קליטת ציוד", "details": "יבוא מפיילוט" },
+    { "id": "h5", "date": "16/07/2026", "device_sn": "ESGL0100049", "employee": "שי ביטון", "event": "תקלה/מעקב", "details": "משקף לא תקין ומכשיר בלוי" }
+  ]
+}
