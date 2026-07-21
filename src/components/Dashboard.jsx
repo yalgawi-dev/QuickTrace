@@ -1,8 +1,8 @@
 import React from 'react'
-import mockData from '../mockData.json'
+import { useAppContext } from '../context/AppContext'
 
 const Dashboard = () => {
-  const { equipment, history, users } = mockData
+  const { equipment, history } = useAppContext()
 
   const activeFaults = equipment.filter(e => e.status !== 'תקין')
   const okEquipment = equipment.filter(e => e.status === 'תקין')
@@ -30,7 +30,7 @@ const Dashboard = () => {
       <table>
         <thead>
           <tr>
-            <th>תאריך</th>
+            <th>תאריך ושעה</th>
             <th>מזהה (מק"ט)</th>
             <th>עובד</th>
             <th>סוג אירוע</th>
@@ -39,11 +39,11 @@ const Dashboard = () => {
         <tbody>
           {history.slice(0, 5).map(h => (
             <tr key={h.id}>
-              <td>{h.date}</td>
+              <td style={{ direction: 'ltr', textAlign: 'right' }}>{h.date} {h.time && `- ${h.time}`}</td>
               <td>{h.device_sn}</td>
               <td>{h.employee}</td>
               <td>
-                <span className={`status-badge ${h.event === 'קליטת ציוד' ? 'status-ok' : 'status-error'}`}>
+                <span className={`status-badge ${h.event.includes('קליט') ? 'status-ok' : (h.event.includes('תקין') ? 'status-ok' : 'status-warning')}`}>
                   {h.event}
                 </span>
               </td>

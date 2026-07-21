@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import mockData from '../mockData.json'
+import { useAppContext } from '../context/AppContext'
 
 const HistoryLog = () => {
   const [search, setSearch] = useState('')
-  const { history } = mockData
+  const { history } = useAppContext()
 
   const filteredHistory = history.filter(h => 
     h.device_sn.toLowerCase().includes(search.toLowerCase()) ||
@@ -18,7 +18,8 @@ const HistoryLog = () => {
         <input 
           type="text" 
           placeholder="חיפוש לפי מק״ט, עובד או אירוע..." 
-          style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', width: '300px' }}
+          className="input-field"
+          style={{ width: '300px' }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -27,7 +28,7 @@ const HistoryLog = () => {
       <table>
         <thead>
           <tr>
-            <th>תאריך</th>
+            <th>תאריך ושעה</th>
             <th>מק"ט ציוד</th>
             <th>עובד</th>
             <th>אירוע</th>
@@ -37,11 +38,11 @@ const HistoryLog = () => {
         <tbody>
           {filteredHistory.map(h => (
             <tr key={h.id}>
-              <td>{h.date}</td>
+              <td style={{ direction: 'ltr', textAlign: 'right' }}>{h.date} {h.time && <span style={{ color: 'var(--text-muted)', fontSize: '0.85em' }}>{h.time}</span>}</td>
               <td style={{ fontWeight: 'bold' }}>{h.device_sn}</td>
               <td>{h.employee}</td>
               <td>
-                <span className={`status-badge ${h.event === 'קליטת ציוד' ? 'status-ok' : 'status-warning'}`}>
+                <span className={`status-badge ${h.event.includes('קליט') || h.event.includes('תקין') ? 'status-ok' : 'status-warning'}`}>
                   {h.event}
                 </span>
               </td>
