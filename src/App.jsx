@@ -39,11 +39,10 @@ function AppContent() {
           </div>
 
           <nav style={{ display: 'flex', gap: '10px' }}>
-            <button className={`btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>דשבורד</button>
-            <button className={`btn ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => setActiveTab('warehouse')}>מחסן פעולות</button>
-            <button className={`btn ${activeTab === 'equipment' ? 'active' : ''}`} onClick={() => setActiveTab('equipment')}>ציוד</button>
-            <button className={`btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>משתמשים</button>
-            <button className={`btn ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>היסטוריה</button>
+            <button className={`btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>דשבורד תמונת מצב</button>
+            <button className={`btn ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => setActiveTab('warehouse')}>דשבורד מחסן ומלאי</button>
+            <button className={`btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>דשבורד עובדים</button>
+            <button className={`btn ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>דשבורד היסטוריה</button>
           </nav>
         </div>
       </header>
@@ -51,7 +50,6 @@ function AppContent() {
       <main>
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'warehouse' && <Warehouse />}
-        {activeTab === 'equipment' && <EquipmentList />}
         {activeTab === 'users' && <UsersList />}
         {activeTab === 'history' && <HistoryLog />}
       </main>

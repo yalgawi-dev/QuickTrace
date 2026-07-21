@@ -3,6 +3,7 @@ import { useAppContext } from '../context/AppContext'
 
 const EquipmentList = () => {
   const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all') // 'all', 'available', 'checkedOut'
   const { equipment, users, appRole, addEquipment } = useAppContext()
   
   const [showAddModal, setShowAddModal] = useState(false)
@@ -19,11 +20,15 @@ const EquipmentList = () => {
     return user ? user.name : 'במחסן / זמין'
   }
 
-  const filteredEq = equipment.filter(eq => 
-    eq.device_sn.toLowerCase().includes(search.toLowerCase()) ||
-    getUserName(eq.currentUser).toLowerCase().includes(search.toLowerCase()) ||
-    eq.type.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredEq = equipment.filter(eq => {
+    const matchesSearch = eq.device_sn.toLowerCase().includes(search.toLowerCase()) ||
+                          getUserName(eq.currentUser).toLowerCase().includes(search.toLowerCase()) ||
+                          eq.type.toLowerCase().includes(search.toLowerCase());
+    
+    if (filterStatus === 'available') return matchesSearch && !eq.currentUser;
+    if (filterStatus === 'checkedOut') return matchesSearch && eq.currentUser;
+    return matchesSearch;
+  })
 
   const handleAddSubmit = (e) => {
     e.preventDefault()
@@ -34,9 +39,9 @@ const EquipmentList = () => {
   }
 
   return (
-    <div className="glass-panel">
+    <div className="glass-panel" style={{ border: 'none', background: 'transparent', padding: '0' }}>
       <div className="flex-header">
-        <h2>ניהול רשומות ציוד ומלאי</h2>
+        <h2>ספירה וניהול רשומות מלאי</h2>
         <div style={{ display: 'flex', gap: '15px' }}>
           <input 
             type="text" 
@@ -51,9 +56,30 @@ const EquipmentList = () => {
         </div>
       </div>
       
-      <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
-        * הערה: מסך זה נועד לניהול הרשומות בלבד. פעולות השאלה והחזרה מתבצעות דרך מסך ה<strong>מחסן</strong>.
-      </p>
+      {/* Quick Filters */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <button 
+          className="btn" 
+          style={{ background: filterStatus === 'all' ? 'var(--primary-color)' : 'transparent', border: '1px solid var(--primary-color)' }}
+          onClick={() => setFilterStatus('all')}
+        >
+          הכל ({equipment.length})
+        </button>
+        <button 
+          className="btn" 
+          style={{ background: filterStatus === 'available' ? 'var(--success)' : 'transparent', border: '1px solid var(--success)' }}
+          onClick={() => setFilterStatus('available')}
+        >
+          זמין במחסן ({equipment.filter(e => !e.currentUser).length})
+        </button>
+        <button 
+          className="btn" 
+          style={{ background: filterStatus === 'checkedOut' ? 'var(--warning)' : 'transparent', border: '1px solid var(--warning)', color: filterStatus === 'checkedOut' ? 'black' : 'var(--warning)' }}
+          onClick={() => setFilterStatus('checkedOut')}
+        >
+          מושאל בשטח ({equipment.filter(e => e.currentUser).length})
+        </button>
+      </div>
 
       <div className="table-container">
         <table>

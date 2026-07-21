@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { useAppContext } from '../context/AppContext'
+import EquipmentList from './EquipmentList'
 
 const Warehouse = () => {
   const { equipment, users, appRole, checkoutEquipment, returnEquipment } = useAppContext()
   
-  const [actionType, setActionType] = useState(null) // 'checkout' or 'return'
+  const [actionType, setActionType] = useState(null) // 'checkout', 'return', or 'inventory'
   const [selectedUserId, setSelectedUserId] = useState('')
   
   // Checkout states
@@ -14,7 +15,7 @@ const Warehouse = () => {
   const [checkoutNotes, setCheckoutNotes] = useState('')
   
   // Return states
-  const [returnItems, setReturnItems] = useState({}) // { eqId: { isReturning: true, status: 'תקין', notes: '' } }
+  const [returnItems, setReturnItems] = useState({}) 
   const [batteriesReturned, setBatteriesReturned] = useState(0)
   
   const resetForm = () => {
@@ -69,7 +70,7 @@ const Warehouse = () => {
     }
 
     if (selectedEqId) checkoutEquipment(selectedEqId, selectedUserId, checkoutNotes, batteriesTaken)
-    if (selectedGogglesId) checkoutEquipment(selectedGogglesId, selectedUserId, checkoutNotes, 0) // batteries already counted
+    if (selectedGogglesId) checkoutEquipment(selectedGogglesId, selectedUserId, checkoutNotes, 0)
 
     alert('הציוד שויך בהצלחה!')
     resetForm()
@@ -85,17 +86,11 @@ const Warehouse = () => {
     }
 
     itemsToReturn.forEach((id, index) => {
-      // only deduct batteries on the first item to avoid double deduction
       const batToReturn = index === 0 ? batteriesReturned : 0;
       returnEquipment(id, returnItems[id].status, returnItems[id].notes, batToReturn)
     })
 
-    // If they only return batteries but no equipment
     if (itemsToReturn.length === 0 && batteriesReturned > 0) {
-      // Find a dummy or existing equipment just to pass the battery decrement, or handle via dedicated battery func
-      // For now, we rely on the context. Let's just find ANY equipment held by user, or add a fake return.
-      // Actually, since returnEquipment requires a deviceId, we'll need to update context if we want pure battery returns.
-      // But usually they return devices. Let's just alert for now.
       alert('החזרת סוללות בוצעה (בלוגיקה מלאה נוסיף תמיכה נפרדת)')
     }
 
@@ -112,12 +107,22 @@ const Warehouse = () => {
     )
   }
 
+  // If inventory action is selected, render EquipmentList wrapped with a back button
+  if (actionType === 'inventory') {
+    return (
+      <div style={{ position: 'relative' }}>
+        <button className="btn" onClick={resetForm} style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 10 }}>✖ חזור למחסן הראשי</button>
+        <EquipmentList />
+      </div>
+    )
+  }
+
   return (
     <div className="glass-panel" style={{ minHeight: '60vh' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>📦 מרכז פעולות - מחסן ציוד</h2>
+      <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>📦 דשבורד מרכז פעולות - מחסן ציוד</h2>
       
       {!actionType && (
-        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '50px' }}>
+        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '50px', flexWrap: 'wrap' }}>
           <button 
             className="btn" 
             style={{ width: '250px', height: '150px', fontSize: '1.5rem', background: 'var(--success)' }}
@@ -128,10 +133,18 @@ const Warehouse = () => {
           
           <button 
             className="btn" 
-            style={{ width: '250px', height: '150px', fontSize: '1.5rem', background: 'var(--warning)' }}
+            style={{ width: '250px', height: '150px', fontSize: '1.5rem', background: 'var(--warning)', color: 'black' }}
             onClick={() => setActionType('return')}
           >
             ⬇️ החזרת ציוד<br/><span style={{ fontSize: '1rem', fontWeight: 'normal', opacity: 0.8 }}>(קליטה למחסן)</span>
+          </button>
+          
+          <button 
+            className="btn" 
+            style={{ width: '250px', height: '150px', fontSize: '1.5rem', background: 'var(--primary-color)' }}
+            onClick={() => setActionType('inventory')}
+          >
+            📋 ספירה וניהול מלאי<br/><span style={{ fontSize: '1rem', fontWeight: 'normal', opacity: 0.8 }}>(רשומות הציוד)</span>
           </button>
         </div>
       )}
