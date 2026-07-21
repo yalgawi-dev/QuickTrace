@@ -14,7 +14,7 @@ const EquipmentList = () => {
     device_sn: '', status: 'תקין', customStatus: '', 
     notes: '', purchaseDate: '', warrantyExpiry: '', 
     nextCalibration: '', currentUser: null,
-    linkedType: ''
+    linkedTypes: [] // Now an array of strings
   }
   const [newEq, setNewEq] = useState(initialEqState)
   const [editingEq, setEditingEq] = useState(null)
@@ -40,6 +40,11 @@ const EquipmentList = () => {
     return matchesSearch;
   })
 
+  // Get all unique equipment types currently in the system, plus "סוללות"
+  const availableTypes = Array.from(new Set(equipment.map(e => e.type))).filter(t => t && t !== 'other');
+  if (!availableTypes.includes('סוללות')) availableTypes.push('סוללות');
+  if (!availableTypes.includes('משקף')) availableTypes.push('משקף'); // Ensure default exists
+
   const handleAddSubmit = (e) => {
     e.preventDefault()
     const finalType = newEq.type === 'other' ? newEq.customType : newEq.type
@@ -59,12 +64,17 @@ const EquipmentList = () => {
   }
 
   const openEditModal = (eq) => {
-    // If it's a standard type/status, use it, else set to 'other' and populate custom fields
     const standardTypes = ['אולטראסאונד (easi-scan)', 'אולטראסאונד (easi-scan go)', 'אולטראסאונד (IMV חוטי)', 'משקף']
     const standardStatuses = ['תקין', 'חדש', 'ישן', 'מעקב', 'תקלה', 'בתיקון']
     
     const isStandardType = standardTypes.includes(eq.type)
     const isStandardStatus = standardStatuses.includes(eq.status)
+
+    // Handle legacy single 'linkedType' mapping to array if present
+    let linked = eq.linkedTypes || []
+    if (eq.linkedType && linked.length === 0) {
+      linked = [eq.linkedType]
+    }
 
     setEditingEq({
       ...eq,
@@ -72,9 +82,18 @@ const EquipmentList = () => {
       customType: !isStandardType ? eq.type : '',
       status: isStandardStatus ? eq.status : 'other',
       customStatus: !isStandardStatus ? eq.status : '',
-      linkedType: eq.linkedType || ''
+      linkedTypes: linked
     })
     setShowEditModal(true)
+  }
+
+  const handleLinkedTypeToggle = (formData, setFormData, type) => {
+    const current = formData.linkedTypes || []
+    if (current.includes(type)) {
+      setFormData({ ...formData, linkedTypes: current.filter(t => t !== type) })
+    } else {
+      setFormData({ ...formData, linkedTypes: [...current, type] })
+    }
   }
 
   const FormFields = ({ formData, setFormData }) => (
@@ -93,13 +112,26 @@ const EquipmentList = () => {
         )}
       </div>
 
-      <div>
-        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ציוד נלווה / משוייך (אופציונלי)</label>
-        <select className="input-field" value={formData.linkedType} onChange={e => setFormData({...formData, linkedType: e.target.value})}>
-          <option value="">ללא ציוד נלווה</option>
-          <option value="משקף">משקף</option>
-        </select>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '3px' }}>* יקפיץ את בחירת הציוד הנלווה בעת משיכת ציוד זה</div>
+      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+        <label style={{ fontSize: '0.9rem', color: 'var(--primary-color)', display: 'block', marginBottom: '8px' }}>
+          🔗 ציוד נלווה / משוייך (אופציונלי)
+        </label>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+          סמן אילו פריטים תמיד מוצעים יחד עם מכשיר זה בעת משיכה:
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {availableTypes.filter(t => t !== (formData.type === 'other' ? formData.customType : formData.type)).map(type => (
+            <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+              <input 
+                type="checkbox" 
+                checked={(formData.linkedTypes || []).includes(type)}
+                onChange={() => handleLinkedTypeToggle(formData, setFormData, type)}
+              />
+              {type}
+            </label>
+          ))}
+        </div>
       </div>
 
       <div>
@@ -184,25 +216,30 @@ const EquipmentList = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredEq.map(eq => (
-              <tr key={eq.id}>
-                <td style={{ fontWeight: 'bold' }}>{eq.type}</td>
-                <td style={{ direction: 'ltr', textAlign: 'right' }}>{eq.device_sn}</td>
-                <td style={{ color: 'var(--text-muted)' }}>{eq.linkedType || '-'}</td>
-                <td style={{ color: eq.currentUser ? 'white' : 'var(--success)', fontWeight: eq.currentUser ? 'normal' : 'bold' }}>{getUserName(eq.currentUser)}</td>
-                <td>
-                  <span className={`status-badge ${getStatusClass(eq.status)}`}>
-                    {eq.status}
-                  </span>
-                </td>
-                <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'normal', maxWidth: '200px' }}>{eq.notes || '-'}</td>
-                {appRole === 'admin' && (
-                  <td>
-                    <button className="btn" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={() => openEditModal(eq)}>ערוך</button>
+            {filteredEq.map(eq => {
+              const linked = eq.linkedTypes || (eq.linkedType ? [eq.linkedType] : [])
+              return (
+                <tr key={eq.id}>
+                  <td style={{ fontWeight: 'bold' }}>{eq.type}</td>
+                  <td style={{ direction: 'ltr', textAlign: 'right' }}>{eq.device_sn}</td>
+                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {linked.length > 0 ? linked.join(', ') : '-'}
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td style={{ color: eq.currentUser ? 'white' : 'var(--success)', fontWeight: eq.currentUser ? 'normal' : 'bold' }}>{getUserName(eq.currentUser)}</td>
+                  <td>
+                    <span className={`status-badge ${getStatusClass(eq.status)}`}>
+                      {eq.status}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'normal', maxWidth: '200px' }}>{eq.notes || '-'}</td>
+                  {appRole === 'admin' && (
+                    <td>
+                      <button className="btn" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={() => openEditModal(eq)}>ערוך</button>
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

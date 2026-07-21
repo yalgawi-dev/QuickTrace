@@ -67,8 +67,8 @@ export const AppProvider = ({ children }) => {
     setHistory([{ ...event, id: `h${Date.now()}` }, ...history]);
   };
 
-  // Updates checkout to take batteries amount and add it to the user
-  const checkoutEquipment = (deviceId, userId, notes, batteriesTaken = 0, manualDate = null, manualTime = null) => {
+  // Updates checkout to take batteries amount, status, date/time and issuer
+  const checkoutEquipment = (deviceId, userId, notes, batteriesTaken = 0, manualDate = null, manualTime = null, checkoutStatus = 'תקין', issuer = 'לא צוין') => {
     const eq = equipment.find(e => e.id === deviceId);
     const user = users.find(u => u.id === userId);
     const now = new Date();
@@ -82,7 +82,7 @@ export const AppProvider = ({ children }) => {
     const timeStr = manualTime || now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
     // Update equipment
-    setEquipment(equipment.map(e => e.id === deviceId ? { ...e, currentUser: userId, status: 'תקין', notes } : e));
+    setEquipment(equipment.map(e => e.id === deviceId ? { ...e, currentUser: userId, status: checkoutStatus, notes } : e));
     
     // Update user batteries
     if (batteriesTaken > 0) {
@@ -95,12 +95,12 @@ export const AppProvider = ({ children }) => {
       time: timeStr,
       device_sn: eq.device_sn,
       employee: user.name,
-      event: `קליטת ציוד - ${eq.type}`,
-      details: `${notes || 'נלקח לשימוש'}${batteriesTaken > 0 ? ` (כולל ${batteriesTaken} סוללות)` : ''}`
+      event: `משיכת ציוד - ${eq.type}`,
+      details: `נלקח (סטטוס: ${checkoutStatus}). ${notes ? 'הערות: ' + notes : ''} ${batteriesTaken > 0 ? `(כולל ${batteriesTaken} סוללות)` : ''}. אושר ע"י: ${issuer}`
     });
   };
 
-  const returnEquipment = (deviceId, status, notes, batteriesReturned = 0, manualDate = null, manualTime = null) => {
+  const returnEquipment = (deviceId, status, notes, batteriesReturned = 0, manualDate = null, manualTime = null, issuer = 'לא צוין') => {
     const eq = equipment.find(e => e.id === deviceId);
     const user = users.find(u => u.id === eq.currentUser);
     const now = new Date();
@@ -128,7 +128,7 @@ export const AppProvider = ({ children }) => {
       device_sn: eq.device_sn,
       employee: user ? user.name : 'לא ידוע',
       event: `החזרת ${eq.type} - ${status}`,
-      details: `${notes}${batteriesReturned > 0 ? ` (הוחזרו ${batteriesReturned} סוללות)` : ''}`
+      details: `${notes} ${batteriesReturned > 0 ? `(הוחזרו ${batteriesReturned} סוללות)` : ''}. נמסר ל: ${issuer}`
     });
   };
 
