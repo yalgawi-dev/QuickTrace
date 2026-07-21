@@ -35,15 +35,25 @@ const Dashboard = () => {
       <div className="flex-header">
         <h2>מבט כללי (דשבורד)</h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>בדיקת סטטוס מהירה:</label>
-          <input 
-            type="text" 
-            placeholder='הקלד מק"ט, משקף או שם עובד...' 
+          <label style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>חיפוש ובדיקת סטטוס:</label>
+          <select 
             className="input-field"
             style={{ width: '300px' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          >
+            <option value="">-- בחר ציוד או עובד לחיפוש --</option>
+            <optgroup label="לפי מכשיר (מק״ט)">
+              {equipment.map(eq => (
+                <option key={eq.id} value={eq.device_sn}>{eq.type} - מק״ט: {eq.device_sn} {eq.goggles_sn ? `(משקף: ${eq.goggles_sn})` : ''}</option>
+              ))}
+            </optgroup>
+            <optgroup label="לפי עובדים / אנשי קשר">
+              {users.map(u => (
+                <option key={u.id} value={u.phone}>{u.name} ({u.role})</option>
+              ))}
+            </optgroup>
+          </select>
         </div>
       </div>
       
@@ -53,9 +63,12 @@ const Dashboard = () => {
           <h3 style={{ color: 'var(--primary-color)', marginBottom: '15px' }}>תוצאת חיפוש:</h3>
           
           {searchedEquipment ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
               <div>
                 <strong>מכשיר:</strong> {searchedEquipment.type} | <strong>מק"ט:</strong> {searchedEquipment.device_sn}
+              </div>
+              <div style={{ background: 'rgba(59, 130, 246, 0.2)', padding: '5px 10px', borderRadius: '4px', border: '1px solid var(--primary-color)' }}>
+                <strong>משקף מקושר:</strong> {searchedEquipment.goggles_sn ? searchedEquipment.goggles_sn : 'ללא משקף'}
               </div>
               <div>
                 <strong>משתמש נוכחי:</strong> {getUserName(searchedEquipment.currentUser)}
@@ -73,16 +86,18 @@ const Dashboard = () => {
               <h4 style={{ marginTop: '10px', color: 'var(--text-muted)' }}>ציוד שברשותו כעת:</h4>
               <ul style={{ listStyle: 'none', marginTop: '5px' }}>
                 {equipment.filter(e => e.currentUser === searchedUser.id).map(eq => (
-                  <li key={eq.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '5px 10px', borderRadius: '4px', marginBottom: '5px' }}>
-                    {eq.type} ({eq.device_sn}) - <span className={`status-badge ${getStatusClass(eq.status)}`}>{eq.status}</span>
+                  <li key={eq.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px', marginBottom: '8px', borderLeft: '4px solid var(--primary-color)' }}>
+                    <strong>{eq.type} (מק"ט: {eq.device_sn})</strong> 
+                    <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>|</span>
+                    <span><strong>משקף:</strong> {eq.goggles_sn || 'ללא משקף'}</span>
+                    <span style={{ margin: '0 10px', color: 'var(--text-muted)' }}>|</span>
+                    <span className={`status-badge ${getStatusClass(eq.status)}`}>{eq.status}</span>
                   </li>
                 ))}
                 {equipment.filter(e => e.currentUser === searchedUser.id).length === 0 && <li>אין ציוד משויך.</li>}
               </ul>
             </div>
-          ) : (
-            <p style={{ color: 'var(--text-muted)' }}>לא נמצאו תוצאות מדויקות למק"ט או משתמש זה.</p>
-          )}
+          ) : null}
         </div>
       )}
 
