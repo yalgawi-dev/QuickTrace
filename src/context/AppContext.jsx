@@ -59,6 +59,10 @@ export const AppProvider = ({ children }) => {
     setEquipment([...equipment, { ...eq, id: `e${Date.now()}` }]);
   };
 
+  const updateEquipment = (updatedEq) => {
+    setEquipment(equipment.map(e => e.id === updatedEq.id ? updatedEq : e));
+  };
+
   const addHistoryEvent = (event) => {
     setHistory([{ ...event, id: `h${Date.now()}` }, ...history]);
   };
@@ -131,7 +135,7 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider value={{
       users, equipment, history, appRole,
-      toggleRole, addUser, addEquipment, checkoutEquipment, returnEquipment
+      toggleRole, addUser, addEquipment, updateEquipment, checkoutEquipment, returnEquipment
     }}>
       {children}
     </AppContext.Provider>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAppContext } from '../context/AppContext'
 import EquipmentList from './EquipmentList'
+import AutocompleteSearch from './AutocompleteSearch'
 
 const Warehouse = () => {
   const { equipment, users, appRole, checkoutEquipment, returnEquipment } = useAppContext()
@@ -107,15 +108,45 @@ const Warehouse = () => {
     )
   }
 
-  // If inventory action is selected, render EquipmentList wrapped with a back button
   if (actionType === 'inventory') {
     return (
-      <div style={{ position: 'relative' }}>
-        <button className="btn" onClick={resetForm} style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 10 }}>✖ חזור למחסן הראשי</button>
+      <div>
+        <div style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center' }}>
+          <button className="btn" onClick={resetForm} style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}>
+            ⬅ חזור לדשבורד מחסן
+          </button>
+        </div>
         <EquipmentList />
       </div>
     )
   }
+
+  // --- Map Options for Autocomplete ---
+  const userOptionsForCheckout = users.map(u => ({ label: `${u.name} (${u.phone})`, value: u.id, searchTerms: [u.name, u.phone] }));
+  
+  const availableEqOptions = equipment
+    .filter(e => !e.currentUser && !e.type.includes('משקף'))
+    .map(e => ({
+      label: `${e.type} (מק"ט: ${e.device_sn}) ${e.status !== 'תקין' ? `[${e.status}]` : ''}`,
+      value: e.id,
+      searchTerms: [e.type, e.device_sn]
+    }));
+
+  // Find if selected eq has a linked type
+  const selectedEq = equipment.find(e => e.id === selectedEqId);
+  const requiresLinkedGoggles = selectedEq?.linkedType === 'משקף';
+
+  const availableGogglesOptions = equipment
+    .filter(e => !e.currentUser && e.type.includes('משקף'))
+    .map(e => ({
+      label: `${e.type} (מק"ט: ${e.device_sn}) ${e.status !== 'תקין' ? `[${e.status}]` : ''}`,
+      value: e.id,
+      searchTerms: [e.type, e.device_sn]
+    }));
+
+  const userOptionsForReturn = users
+    .filter(u => equipment.some(e => e.currentUser === u.id) || u.activeBatteries > 0)
+    .map(u => ({ label: `${u.name} (${u.phone})`, value: u.id, searchTerms: [u.name, u.phone] }));
 
   return (
     <div className="glass-panel" style={{ minHeight: '60vh' }}>
@@ -149,160 +180,164 @@ const Warehouse = () => {
         </div>
       )}
 
-      {/* CHECKOUT WIZARD */}
+      {/* --- CHECKOUT WIZARD --- */}
       {actionType === 'checkout' && (
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ color: 'var(--success)' }}>⬆️ משיכת ציוד מהמחסן</h3>
-            <button onClick={resetForm} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>✖ חזור</button>
+        <div style={{ maxWidth: '600px', margin: '0 auto', background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '15px' }}>
+          <div className="flex-header">
+            <h3>משיכת ציוד ושיוך לעובד</h3>
+            <button className="btn" onClick={resetForm} style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}>ביטול וחזרה</button>
           </div>
-          
-          <form onSubmit={submitCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>1. לאיזה עובד נשייך את הציוד?</label>
-              <select required className="input-field" value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)}>
-                <option value="" disabled>-- בחר עובד מהרשימה --</option>
-                {users.filter(u => u.isActive).map(u => (
-                  <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                ))}
-              </select>
+
+          <form onSubmit={submitCheckout} style={{ marginTop: '20px' }}>
+            
+            <div className="glass-panel" style={{ marginBottom: '20px', padding: '15px' }}>
+              <h4 style={{ marginBottom: '10px' }}>1. למי לשייך? (בחר עובד)</h4>
+              <AutocompleteSearch 
+                placeholder="הקלד שם או טלפון לחיפוש..."
+                options={userOptionsForCheckout}
+                value={selectedUserId}
+                onChange={(val) => setSelectedUserId(val)}
+                emptyMessage="לא נמצא עובד מתאים"
+              />
             </div>
 
             {selectedUserId && (
-              <div className="glass-panel" style={{ background: 'rgba(0,0,0,0.2)', padding: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '15px', color: 'var(--text-muted)' }}>2. בחר ציוד פנוי מהמחסן:</label>
+              <div className="glass-panel" style={{ marginBottom: '20px', padding: '15px', animation: 'fadeIn 0.3s' }}>
+                <h4 style={{ marginBottom: '10px' }}>2. איזה ציוד הוא לוקח?</h4>
                 
                 <div style={{ marginBottom: '15px' }}>
-                  <select className="input-field" value={selectedEqId} onChange={e => setSelectedEqId(e.target.value)}>
-                    <option value="">-- בחר אולטראסאונד (אופציונלי) --</option>
-                    {equipment.filter(e => !e.currentUser && e.status === 'תקין' && !e.type.includes('משקף')).map(e => (
-                      <option key={e.id} value={e.id}>{e.type} (מק"ט: {e.device_sn})</option>
-                    ))}
-                  </select>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>מכשיר ראשי (אולטראסאונד / ציוד אחר)</label>
+                  <AutocompleteSearch 
+                    placeholder="חיפוש לפי שם או מק״ט מכשיר..."
+                    options={availableEqOptions}
+                    value={selectedEqId}
+                    onChange={(val) => {
+                      setSelectedEqId(val)
+                      setSelectedGogglesId('') // reset dependent if changed
+                    }}
+                    emptyMessage="לא נמצא מכשיר פנוי במלאי"
+                  />
                 </div>
+
+                {requiresLinkedGoggles && (
+                  <div style={{ marginBottom: '15px', animation: 'fadeIn 0.3s', borderLeft: '3px solid var(--primary-color)', paddingLeft: '10px' }}>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--primary-color)' }}>הציוד הנבחר דורש משקף נלווה:</label>
+                    <AutocompleteSearch 
+                      placeholder="חיפוש לפי שם או מק״ט משקף..."
+                      options={availableGogglesOptions}
+                      value={selectedGogglesId}
+                      onChange={(val) => setSelectedGogglesId(val)}
+                      emptyMessage="אין משקפים זמינים כרגע!"
+                    />
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '15px' }}>
-                  <select className="input-field" value={selectedGogglesId} onChange={e => setSelectedGogglesId(e.target.value)}>
-                    <option value="">-- בחר משקף (אופציונלי) --</option>
-                    {equipment.filter(e => !e.currentUser && e.status === 'תקין' && e.type.includes('משקף')).map(e => (
-                      <option key={e.id} value={e.id}>{e.type} (מק"ט: {e.device_sn})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <label style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>כמות סוללות נוספות:</label>
-                  <input type="number" min="0" className="input-field" style={{ width: '100px' }} value={batteriesTaken} onChange={e => setBatteriesTaken(parseInt(e.target.value) || 0)} />
-                </div>
-                
-                <div style={{ marginTop: '15px' }}>
-                   <textarea 
-                    placeholder="הערות כלליות למשיכה זו..." 
+                  <label style={{ display: 'block', marginBottom: '5px' }}>כמה סוללות נוספות לקח?</label>
+                  <input 
+                    type="number" 
+                    min="0"
                     className="input-field" 
-                    rows="2"
-                    value={checkoutNotes} 
-                    onChange={e => setCheckoutNotes(e.target.value)} 
+                    value={batteriesTaken} 
+                    onChange={e => setBatteriesTaken(parseInt(e.target.value) || 0)} 
                   />
                 </div>
               </div>
             )}
 
             {selectedUserId && (
-              <button type="submit" className="btn" style={{ background: 'var(--success)', fontSize: '1.2rem', padding: '15px' }}>
-                אישור משיכה ועדכון מלאי
-              </button>
+              <div className="glass-panel" style={{ padding: '15px', animation: 'fadeIn 0.3s' }}>
+                <h4 style={{ marginBottom: '10px' }}>3. הערות למשיכה</h4>
+                <textarea 
+                  className="input-field" 
+                  rows="2" 
+                  placeholder="הערות על מצב הציוד ביציאה (אופציונלי)"
+                  value={checkoutNotes}
+                  onChange={e => setCheckoutNotes(e.target.value)}
+                ></textarea>
+
+                <button type="submit" className="btn" style={{ width: '100%', marginTop: '15px', background: 'var(--success)' }}>
+                  ✅ אישור שיוך
+                </button>
+              </div>
             )}
           </form>
         </div>
       )}
 
-      {/* RETURN WIZARD */}
+      {/* --- RETURN WIZARD --- */}
       {actionType === 'return' && (
-        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ color: 'var(--warning)' }}>⬇️ החזרת ציוד למחסן</h3>
-            <button onClick={resetForm} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>✖ חזור</button>
+        <div style={{ maxWidth: '600px', margin: '0 auto', background: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '15px' }}>
+          <div className="flex-header">
+            <h3>החזרת ציוד מהשטח למחסן</h3>
+            <button className="btn" onClick={resetForm} style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}>ביטול וחזרה</button>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>1. איזה עובד מחזיר עכשיו ציוד?</label>
-            <select className="input-field" value={selectedUserId} onChange={e => handleUserSelectForReturn(e.target.value)}>
-              <option value="" disabled>-- בחר עובד (מוצגים רק עובדים עם ציוד/סוללות) --</option>
-              {users.filter(u => equipment.some(eq => eq.currentUser === u.id) || u.activeBatteries > 0).map(u => (
-                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-              ))}
-            </select>
-          </div>
+          <form onSubmit={submitReturn} style={{ marginTop: '20px' }}>
+            <div className="glass-panel" style={{ marginBottom: '20px', padding: '15px' }}>
+              <h4 style={{ marginBottom: '10px' }}>מי מחזיר?</h4>
+              <AutocompleteSearch 
+                placeholder="סנן לפי שם או טלפון..."
+                options={userOptionsForReturn}
+                value={selectedUserId}
+                onChange={(val) => handleUserSelectForReturn(val)}
+                emptyMessage="אין עובדים המחזיקים בציוד כרגע"
+              />
+            </div>
 
-          {selectedUserId && (
-            <form onSubmit={submitReturn}>
-              <label style={{ display: 'block', marginBottom: '15px', color: 'var(--text-muted)' }}>2. סמן את הפריטים המוחזרים ועדכן את הסטטוס שלהם:</label>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+            {selectedUserId && (
+              <div className="glass-panel" style={{ padding: '15px', animation: 'fadeIn 0.3s' }}>
+                <h4 style={{ marginBottom: '15px', color: 'var(--warning)' }}>סמן איזה ציוד להחזיר:</h4>
+                
                 {equipment.filter(e => e.currentUser === selectedUserId).map(eq => (
-                  <div key={eq.id} className="glass-panel" style={{ background: returnItems[eq.id]?.isReturning ? 'rgba(245, 158, 11, 0.15)' : 'rgba(0,0,0,0.2)', padding: '15px', border: returnItems[eq.id]?.isReturning ? '1px solid var(--warning)' : '1px solid transparent' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: returnItems[eq.id]?.isReturning ? '15px' : '0' }}>
+                  <div key={eq.id} className="glass-panel" style={{ marginBottom: '10px', background: 'rgba(0,0,0,0.2)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
                       <input 
                         type="checkbox" 
-                        id={`ret-${eq.id}`}
-                        style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
-                        checked={returnItems[eq.id]?.isReturning || false}
-                        onChange={() => handleReturnToggle(eq.id)}
+                        checked={returnItems[eq.id]?.isReturning || false} 
+                        onChange={() => handleReturnToggle(eq.id)} 
+                        style={{ width: '20px', height: '20px' }}
                       />
-                      <label htmlFor={`ret-${eq.id}`} style={{ cursor: 'pointer', flex: 1, fontSize: '1.1rem' }}>
-                        <strong>{eq.type}</strong> (מק"ט: {eq.device_sn})
-                      </label>
-                    </div>
+                      {eq.type} (מק"ט: {eq.device_sn})
+                    </label>
                     
                     {returnItems[eq.id]?.isReturning && (
-                      <div style={{ display: 'flex', gap: '15px', paddingLeft: '35px' }}>
-                        <select className="input-field" style={{ flex: 1 }} value={returnItems[eq.id].status} onChange={e => handleReturnStatusChange(eq.id, e.target.value)}>
-                          <option value="תקין">חזר תקין</option>
-                          <option value="מעקב">חזר פגום - דורש מעקב</option>
-                          <option value="תקלה">חזר תקול - דורש תיקון</option>
+                      <div style={{ marginTop: '10px', display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                        <select className="input-field" value={returnItems[eq.id].status} onChange={(e) => handleReturnStatusChange(eq.id, e.target.value)}>
+                          <option value="תקין">תקין</option>
+                          <option value="מעקב">דורש מעקב טכני</option>
+                          <option value="תקלה">הוחזר עם תקלה (לשלוח לתיקון)</option>
                         </select>
                         <input 
                           type="text" 
-                          placeholder="הערות (שבר, נזק, חסר כבל...)" 
-                          className="input-field" 
-                          style={{ flex: 2 }}
+                          placeholder="הערות על מצב הציוד..." 
+                          className="input-field"
                           value={returnItems[eq.id].notes}
-                          onChange={e => handleReturnNotesChange(eq.id, e.target.value)}
+                          onChange={(e) => handleReturnNotesChange(eq.id, e.target.value)}
                         />
                       </div>
                     )}
                   </div>
                 ))}
+                
+                <div className="glass-panel" style={{ marginTop: '15px', background: 'rgba(0,0,0,0.2)' }}>
+                  <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>סוללות להחזרה (כרגע אצלו: {users.find(u => u.id === selectedUserId)?.activeBatteries || 0})</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max={users.find(u => u.id === selectedUserId)?.activeBatteries || 0}
+                    className="input-field" 
+                    value={batteriesReturned} 
+                    onChange={e => setBatteriesReturned(parseInt(e.target.value) || 0)} 
+                  />
+                </div>
 
-                {(users.find(u => u.id === selectedUserId)?.activeBatteries > 0) && (
-                   <div className="glass-panel" style={{ background: 'rgba(0,0,0,0.2)', padding: '15px' }}>
-                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        <span style={{ fontSize: '1.5rem' }}>🔋</span>
-                        <div style={{ flex: 1 }}>
-                          <strong>סוללות באחריות העובד:</strong> {users.find(u => u.id === selectedUserId).activeBatteries} יח'
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <label>כמה מוחזרות כעת?</label>
-                          <input 
-                            type="number" 
-                            min="0" 
-                            max={users.find(u => u.id === selectedUserId).activeBatteries} 
-                            className="input-field" 
-                            style={{ width: '80px' }}
-                            value={batteriesReturned}
-                            onChange={e => setBatteriesReturned(parseInt(e.target.value) || 0)}
-                          />
-                        </div>
-                     </div>
-                   </div>
-                )}
+                <button type="submit" className="btn" style={{ width: '100%', marginTop: '20px', background: 'var(--warning)', color: 'black' }}>
+                  ⬇️ קלוט ציוד חזרה למחסן
+                </button>
               </div>
-
-              <button type="submit" className="btn" style={{ width: '100%', background: 'var(--warning)', fontSize: '1.2rem', padding: '15px', color: 'black' }}>
-                אישור קליטה למחסן
-              </button>
-            </form>
-          )}
+            )}
+          </form>
         </div>
       )}
     </div>
