@@ -11,6 +11,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('quickTrace_activeTab') || 'dashboard'
   })
+  const [warehouseKey, setWarehouseKey] = useState(0)
   const { appRole, setAppRole } = useAppContext()
 
   useEffect(() => {
@@ -40,7 +41,7 @@ function AppContent() {
 
           <nav style={{ display: 'flex', gap: '10px' }}>
             <button className={`btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>דשבורד תמונת מצב</button>
-            <button className={`btn ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => setActiveTab('warehouse')}>דשבורד מחסן ומלאי</button>
+            <button className={`btn ${activeTab === 'warehouse' ? 'active' : ''}`} onClick={() => { setActiveTab('warehouse'); setWarehouseKey(prev => prev + 1); }}>דשבורד מחסן ומלאי</button>
             <button className={`btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>דשבורד עובדים</button>
             <button className={`btn ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>דשבורד היסטוריה</button>
           </nav>
@@ -49,7 +50,7 @@ function AppContent() {
 
       <main>
         {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'warehouse' && <Warehouse />}
+        {activeTab === 'warehouse' && <Warehouse key={warehouseKey} />}
         {activeTab === 'users' && <UsersList />}
         {activeTab === 'history' && <HistoryLog />}
       </main>

@@ -1,7 +1,124 @@
 import React, { useState } from 'react'
 import { useAppContext } from '../context/AppContext'
 
-const EquipmentList = () => {
+// Component pulled outside to prevent re-mounting and losing input focus on every keystroke
+const FormFields = ({ formData, setFormData, availableTypes }) => (
+  <div style={{ display: 'grid', gap: '15px' }}>
+    <div style={{ display: 'flex', gap: '15px' }}>
+      <div style={{ flex: 1 }}>
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>סוג הציוד</label>
+        <input 
+          list="equipment-types" 
+          className="input-field" 
+          value={formData.type} 
+          onChange={e => setFormData({...formData, type: e.target.value})}
+          placeholder="בחר או הקלד סוג חדש..."
+          required
+        />
+        <datalist id="equipment-types">
+          {availableTypes.map(type => (
+            <option key={type} value={type} />
+          ))}
+        </datalist>
+      </div>
+
+      <div style={{ flex: 1 }}>
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>סטטוס המכשיר</label>
+        <select 
+          className="input-field" 
+          value={['תקין', 'חדש מהניילון', 'ישן / שחוק', 'במעקב טכני', 'תקול / מקולקל', 'נשלח לתיקון'].includes(formData.status) ? formData.status : 'other'} 
+          onChange={e => {
+            if (e.target.value !== 'other') {
+              setFormData({...formData, status: e.target.value});
+            } else {
+              setFormData({...formData, status: 'other'}); // Temporary state until they type
+            }
+          }}
+          required
+        >
+          <option value="תקין">תקין</option>
+          <option value="חדש מהניילון">חדש מהניילון</option>
+          <option value="ישן / שחוק">ישן / שחוק</option>
+          <option value="במעקב טכני">במעקב טכני</option>
+          <option value="תקול / מקולקל">תקול / מקולקל</option>
+          <option value="נשלח לתיקון">נשלח לתיקון</option>
+          <option value="other">סטטוס אחר (הזן ידנית)...</option>
+        </select>
+        {(!['תקין', 'חדש מהניילון', 'ישן / שחוק', 'במעקב טכני', 'תקול / מקולקל', 'נשלח לתיקון'].includes(formData.status) || formData.status === 'other') && (
+          <input 
+            required 
+            placeholder='הזן סטטוס חדש...' 
+            className="input-field" 
+            style={{ marginTop: '5px' }} 
+            value={formData.status === 'other' ? '' : formData.status} 
+            onChange={e => setFormData({...formData, status: e.target.value})} 
+          />
+        )}
+      </div>
+    </div>
+
+    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+      <label style={{ fontSize: '0.9rem', color: 'var(--primary-color)', display: 'block', marginBottom: '8px' }}>
+        🔗 ציוד נלווה / משוייך (אופציונלי)
+      </label>
+      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
+        סמן אילו פריטים תמיד מוצעים יחד עם מכשיר זה בעת משיכה:
+      </div>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '100px', overflowY: 'auto', paddingRight: '5px' }}>
+        {availableTypes.filter(t => t !== formData.type).map(type => (
+          <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+            <input 
+              type="checkbox" 
+              checked={(formData.linkedTypes || []).includes(type)}
+              onChange={() => {
+                const current = formData.linkedTypes || []
+                if (current.includes(type)) {
+                  setFormData({ ...formData, linkedTypes: current.filter(t => t !== type) })
+                } else {
+                  setFormData({ ...formData, linkedTypes: [...current, type] })
+                }
+              }}
+            />
+            {type}
+          </label>
+        ))}
+      </div>
+    </div>
+
+    <div style={{ display: 'flex', gap: '15px' }}>
+      <div style={{ flex: 1 }}>
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>מק"ט מכשיר (S/N)</label>
+        <input required placeholder='מק"ט מכשיר (S/N)' className="input-field" value={formData.device_sn} onChange={e => setFormData({...formData, device_sn: e.target.value})} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תאריך טיפול / כיול הבא</label>
+        <input type="date" className="input-field" value={formData.nextCalibration} onChange={e => setFormData({...formData, nextCalibration: e.target.value})} />
+      </div>
+    </div>
+    
+    <div style={{ display: 'flex', gap: '15px' }}>
+      <div style={{ flex: 1 }}>
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תאריך רכישה</label>
+        <input type="date" className="input-field" value={formData.purchaseDate} onChange={e => setFormData({...formData, purchaseDate: e.target.value})} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תוקף אחריות</label>
+        <input type="date" className="input-field" value={formData.warrantyExpiry} onChange={e => setFormData({...formData, warrantyExpiry: e.target.value})} />
+      </div>
+    </div>
+    
+    <textarea 
+      placeholder="הערות התחלתיות למכשיר (אופציונלי)" 
+      className="input-field" 
+      rows="2"
+      value={formData.notes} 
+      onChange={e => setFormData({...formData, notes: e.target.value})} 
+    />
+  </div>
+)
+
+const EquipmentList = ({ onBack }) => {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const { equipment, users, appRole, addEquipment, updateEquipment } = useAppContext()
@@ -10,18 +127,18 @@ const EquipmentList = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   
   const initialEqState = { 
-    type: 'אולטראסאונד (easi-scan)', customType: '', 
-    device_sn: '', status: 'תקין', customStatus: '', 
+    type: '', 
+    device_sn: '', status: 'תקין', 
     notes: '', purchaseDate: '', warrantyExpiry: '', 
     nextCalibration: '', currentUser: null,
-    linkedTypes: [] // Now an array of strings
+    linkedTypes: []
   }
   const [newEq, setNewEq] = useState(initialEqState)
   const [editingEq, setEditingEq] = useState(null)
   
   const getStatusClass = (status) => {
     if (status === 'תקין') return 'status-ok'
-    if (status === 'מעקב') return 'status-warning'
+    if (status?.includes('מעקב')) return 'status-warning'
     return 'status-error'
   }
 
@@ -40,149 +157,48 @@ const EquipmentList = () => {
     return matchesSearch;
   })
 
-  // Get all unique equipment types currently in the system, plus "סוללות"
-  const availableTypes = Array.from(new Set(equipment.map(e => e.type))).filter(t => t && t !== 'other');
+  // Get base categories (e.g., extract "אולטראסאונד" from "אולטראסאונד (easi-scan)")
+  const availableTypes = Array.from(new Set(equipment.map(e => {
+    const match = e.type.match(/^([^\(]+)/);
+    return match ? match[1].trim() : e.type;
+  }))).filter(t => t);
   if (!availableTypes.includes('סוללות')) availableTypes.push('סוללות');
-  if (!availableTypes.includes('משקף')) availableTypes.push('משקף'); // Ensure default exists
+  if (!availableTypes.includes('משקף')) availableTypes.push('משקף'); 
+  if (!availableTypes.includes('אולטראסאונד')) availableTypes.push('אולטראסאונד');
 
   const handleAddSubmit = (e) => {
     e.preventDefault()
-    const finalType = newEq.type === 'other' ? newEq.customType : newEq.type
-    const finalStatus = newEq.status === 'other' ? newEq.customStatus : newEq.status
-    addEquipment({ ...newEq, type: finalType, status: finalStatus })
+    addEquipment(newEq)
     setShowAddModal(false)
     setNewEq(initialEqState)
   }
 
   const handleEditSubmit = (e) => {
     e.preventDefault()
-    const finalType = editingEq.type === 'other' ? editingEq.customType : editingEq.type
-    const finalStatus = editingEq.status === 'other' ? editingEq.customStatus : editingEq.status
-    updateEquipment({ ...editingEq, type: finalType, status: finalStatus })
+    updateEquipment(editingEq)
     setShowEditModal(false)
     setEditingEq(null)
   }
 
   const openEditModal = (eq) => {
-    const standardTypes = ['אולטראסאונד (easi-scan)', 'אולטראסאונד (easi-scan go)', 'אולטראסאונד (IMV חוטי)', 'משקף']
-    const standardStatuses = ['תקין', 'חדש', 'ישן', 'מעקב', 'תקלה', 'בתיקון']
-    
-    const isStandardType = standardTypes.includes(eq.type)
-    const isStandardStatus = standardStatuses.includes(eq.status)
-
-    // Handle legacy single 'linkedType' mapping to array if present
     let linked = eq.linkedTypes || []
     if (eq.linkedType && linked.length === 0) {
       linked = [eq.linkedType]
     }
-
     setEditingEq({
       ...eq,
-      type: isStandardType ? eq.type : 'other',
-      customType: !isStandardType ? eq.type : '',
-      status: isStandardStatus ? eq.status : 'other',
-      customStatus: !isStandardStatus ? eq.status : '',
       linkedTypes: linked
     })
     setShowEditModal(true)
   }
 
-  const handleLinkedTypeToggle = (formData, setFormData, type) => {
-    const current = formData.linkedTypes || []
-    if (current.includes(type)) {
-      setFormData({ ...formData, linkedTypes: current.filter(t => t !== type) })
-    } else {
-      setFormData({ ...formData, linkedTypes: [...current, type] })
-    }
-  }
-
-  const FormFields = ({ formData, setFormData }) => (
-    <>
-      <div>
-        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>סוג הציוד</label>
-        <select className="input-field" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
-          <option value="אולטראסאונד (easi-scan)">אולטראסאונד (easi-scan)</option>
-          <option value="אולטראסאונד (easi-scan go)">אולטראסאונד (easi-scan go)</option>
-          <option value="אולטראסאונד (IMV חוטי)">אולטראסאונד (IMV חוטי)</option>
-          <option value="משקף">משקף</option>
-          <option value="other">אחר (הזן ידנית)...</option>
-        </select>
-        {formData.type === 'other' && (
-          <input required placeholder='הזן סוג מוצר חדש...' className="input-field" style={{ marginTop: '5px' }} value={formData.customType} onChange={e => setFormData({...formData, customType: e.target.value})} />
-        )}
-      </div>
-
-      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
-        <label style={{ fontSize: '0.9rem', color: 'var(--primary-color)', display: 'block', marginBottom: '8px' }}>
-          🔗 ציוד נלווה / משוייך (אופציונלי)
-        </label>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-          סמן אילו פריטים תמיד מוצעים יחד עם מכשיר זה בעת משיכה:
-        </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          {availableTypes.filter(t => t !== (formData.type === 'other' ? formData.customType : formData.type)).map(type => (
-            <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
-              <input 
-                type="checkbox" 
-                checked={(formData.linkedTypes || []).includes(type)}
-                onChange={() => handleLinkedTypeToggle(formData, setFormData, type)}
-              />
-              {type}
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>סטטוס המכשיר</label>
-        <select className="input-field" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-          <option value="תקין">תקין</option>
-          <option value="חדש">חדש מהניילון</option>
-          <option value="ישן">ישן / שחוק</option>
-          <option value="מעקב">במעקב טכני</option>
-          <option value="תקלה">תקול / מקולקל</option>
-          <option value="בתיקון">נשלח לתיקון</option>
-          <option value="other">סטטוס אחר (הזן ידנית)...</option>
-        </select>
-        {formData.status === 'other' && (
-          <input required placeholder='הזן סטטוס חדש...' className="input-field" style={{ marginTop: '5px' }} value={formData.customStatus} onChange={e => setFormData({...formData, customStatus: e.target.value})} />
-        )}
-      </div>
-      
-      <input required placeholder='מק"ט מכשיר (S/N)' className="input-field" value={formData.device_sn} onChange={e => setFormData({...formData, device_sn: e.target.value})} />
-      
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תאריך רכישה</label>
-          <input type="date" className="input-field" value={formData.purchaseDate} onChange={e => setFormData({...formData, purchaseDate: e.target.value})} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תוקף אחריות</label>
-          <input type="date" className="input-field" value={formData.warrantyExpiry} onChange={e => setFormData({...formData, warrantyExpiry: e.target.value})} />
-        </div>
-      </div>
-      
-      <div>
-        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>תאריך טיפול / כיול הבא</label>
-        <input type="date" className="input-field" value={formData.nextCalibration} onChange={e => setFormData({...formData, nextCalibration: e.target.value})} />
-      </div>
-      
-      <textarea 
-        placeholder="הערות התחלתיות למכשיר (אופציונלי)" 
-        className="input-field" 
-        rows="2"
-        value={formData.notes} 
-        onChange={e => setFormData({...formData, notes: e.target.value})} 
-      />
-    </>
-  )
-
   return (
     <div className="glass-panel" style={{ border: 'none', background: 'transparent', padding: '0' }}>
       <div className="flex-header">
-        <h2>ספירה וניהול רשומות מלאי</h2>
-        <div style={{ display: 'flex', gap: '15px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <h2>ספירה וניהול רשומות מלאי</h2>
+        </div>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           <input 
             type="text" 
             placeholder="חיפוש לפי סוג, מק״ט או משתמש..." 
@@ -192,6 +208,11 @@ const EquipmentList = () => {
           />
           {appRole === 'admin' && (
             <button className="btn" onClick={() => setShowAddModal(true)}>+ רשום ציוד חדש</button>
+          )}
+          {onBack && (
+            <button className="btn" onClick={onBack} style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}>
+              ⬅ חזור לדשבורד מחסן
+            </button>
           )}
         </div>
       </div>
@@ -246,10 +267,16 @@ const EquipmentList = () => {
 
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="glass-panel" style={{ width: '450px', background: 'var(--background-dark)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3>הוספת רשומת ציוד חדשה</h3>
+          <div className="glass-panel" style={{ width: '450px', background: 'var(--background-dark)', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button 
+              onClick={() => setShowAddModal(false)} 
+              style={{ position: 'absolute', left: '15px', top: '15px', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+            <h3 style={{ marginTop: 0 }}>הוספת רשומת ציוד חדשה</h3>
             <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
-              <FormFields formData={newEq} setFormData={setNewEq} />
+              <FormFields formData={newEq} setFormData={setNewEq} availableTypes={availableTypes} />
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="btn" style={{ flex: 1 }}>שמור ציוד למלאי</button>
                 <button type="button" className="btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--text-muted)' }} onClick={() => setShowAddModal(false)}>ביטול</button>
@@ -261,10 +288,16 @@ const EquipmentList = () => {
 
       {showEditModal && editingEq && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="glass-panel" style={{ width: '450px', background: 'var(--background-dark)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3>עריכת רשומת ציוד</h3>
+          <div className="glass-panel" style={{ width: '450px', background: 'var(--background-dark)', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button 
+              onClick={() => setShowEditModal(false)} 
+              style={{ position: 'absolute', left: '15px', top: '15px', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+            <h3 style={{ marginTop: 0 }}>עריכת רשומת ציוד</h3>
             <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
-              <FormFields formData={editingEq} setFormData={setEditingEq} />
+              <FormFields formData={editingEq} setFormData={setEditingEq} availableTypes={availableTypes} />
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="btn" style={{ flex: 1 }}>שמור שינויים</button>
                 <button type="button" className="btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--text-muted)' }} onClick={() => setShowEditModal(false)}>ביטול</button>

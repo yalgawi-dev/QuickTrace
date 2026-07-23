@@ -56,15 +56,26 @@ export const AppProvider = ({ children }) => {
   };
 
   const addEquipment = (eq) => {
-    setEquipment([...equipment, { ...eq, id: `e${Date.now()}` }]);
+    const newEqId = `e${Date.now()}`;
+    setEquipment([...equipment, { ...eq, id: newEqId }]);
+    
+    const now = new Date();
+    addHistoryEvent({
+      date: now.toLocaleDateString('he-IL'),
+      time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+      device_sn: eq.device_sn,
+      employee: 'מנהל מערכת', // Should be the issuer/admin
+      event: `קליטת ציוד חדש למלאי - ${eq.type}`,
+      details: `נרשם במערכת בסטטוס: ${eq.status}. ${eq.notes ? 'הערות: ' + eq.notes : ''}`
+    });
   };
 
   const updateEquipment = (updatedEq) => {
-    setEquipment(equipment.map(e => e.id === updatedEq.id ? updatedEq : e));
+    setEquipment(prev => prev.map(e => e.id === updatedEq.id ? updatedEq : e));
   };
 
   const addHistoryEvent = (event) => {
-    setHistory([{ ...event, id: `h${Date.now()}` }, ...history]);
+    setHistory(prev => [{ ...event, id: `h${Date.now()}_${Math.random().toString(36).substr(2, 5)}` }, ...prev]);
   };
 
   // Updates checkout to take batteries amount, status, date/time and issuer
@@ -82,11 +93,11 @@ export const AppProvider = ({ children }) => {
     const timeStr = manualTime || now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
     // Update equipment
-    setEquipment(equipment.map(e => e.id === deviceId ? { ...e, currentUser: userId, status: checkoutStatus, notes } : e));
+    setEquipment(prev => prev.map(e => e.id === deviceId ? { ...e, currentUser: userId, status: checkoutStatus, notes } : e));
     
     // Update user batteries
     if (batteriesTaken > 0) {
-      setUsers(users.map(u => u.id === userId ? { ...u, activeBatteries: (u.activeBatteries || 0) + batteriesTaken } : u));
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, activeBatteries: (u.activeBatteries || 0) + batteriesTaken } : u));
     }
     
     // Add history
@@ -114,11 +125,11 @@ export const AppProvider = ({ children }) => {
     const timeStr = manualTime || now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
     // Update equipment
-    setEquipment(equipment.map(e => e.id === deviceId ? { ...e, currentUser: null, status, notes } : e));
+    setEquipment(prev => prev.map(e => e.id === deviceId ? { ...e, currentUser: null, status, notes } : e));
     
     // Update user batteries
     if (user && batteriesReturned > 0) {
-      setUsers(users.map(u => u.id === user.id ? { ...u, activeBatteries: Math.max(0, (u.activeBatteries || 0) - batteriesReturned) } : u));
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, activeBatteries: Math.max(0, (u.activeBatteries || 0) - batteriesReturned) } : u));
     }
     
     // Add history

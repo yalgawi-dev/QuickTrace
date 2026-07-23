@@ -63,6 +63,11 @@ const AutocompleteSearch = ({ options, value, onChange, placeholder, displayKey 
     }
   };
 
+  const handleFocus = () => {
+    // Only open if they haven't selected a final value yet, or if they click to change
+    setIsOpen(true);
+  };
+
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
       <input
@@ -71,7 +76,10 @@ const AutocompleteSearch = ({ options, value, onChange, placeholder, displayKey 
         placeholder={placeholder}
         value={searchTerm}
         onChange={handleInputChange}
-        onFocus={() => setIsOpen(true)}
+        onFocus={handleFocus}
+        onClick={(e) => {
+          if (value) e.target.select(); // Select text so they can overwrite easily
+        }}
         style={{ width: '100%' }}
       />
       

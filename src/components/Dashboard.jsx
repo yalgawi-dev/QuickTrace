@@ -18,11 +18,17 @@ const Dashboard = () => {
   const activeUsers = users.filter(u => equipment.some(e => e.currentUser === u.id) || u.activeBatteries > 0)
 
   // Filter based on query
-  const filteredUsers = activeUsers.filter(u => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    u.phone.includes(searchQuery) ||
-    equipment.some(e => e.currentUser === u.id && e.device_sn.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  const filteredUsers = activeUsers.filter(u => {
+    const term = searchQuery.trim().toLowerCase();
+    const userMatches = u.name.toLowerCase().includes(term) || u.phone.includes(term);
+    const userEq = equipment.filter(e => e.currentUser === u.id);
+    const eqMatches = userEq.some(e => 
+      e.type.toLowerCase().includes(term) || 
+      e.device_sn.toLowerCase().includes(term)
+    );
+    
+    return userMatches || eqMatches;
+  })
 
   const getStatusClass = (status) => {
     if (status === 'תקין') return 'status-ok'

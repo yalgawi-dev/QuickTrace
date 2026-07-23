@@ -10,7 +10,7 @@ const Warehouse = () => {
   
   // Common states
   const [selectedUserId, setSelectedUserId] = useState('')
-  const [issuerName, setIssuerName] = useState('')
+  const [issuerName, setIssuerName] = useState('מנהל מערכת (אדמין)')
   const [actionDate, setActionDate] = useState(new Date().toISOString().split('T')[0])
   const [actionTime, setActionTime] = useState(new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }))
   
@@ -82,6 +82,23 @@ const Warehouse = () => {
     setBatteriesReturned(user ? user.activeBatteries : 0)
   }
 
+  const handleReturnToggle = (eqId) => {
+    setReturnItems(prev => {
+      const currentItem = prev[eqId] || { status: 'תקין', customStatus: '', notes: '' };
+      return {
+        ...prev,
+        [eqId]: { ...currentItem, isReturning: !currentItem.isReturning }
+      }
+    });
+  }
+
+  const handleReturnNotesChange = (eqId, notes) => {
+    setReturnItems(prev => ({
+      ...prev,
+      [eqId]: { ...(prev[eqId] || {}), notes }
+    }));
+  }
+
   const submitCheckout = (e) => {
     e.preventDefault()
     if (!selectedEqId && batteriesTaken === 0) {
@@ -151,14 +168,7 @@ const Warehouse = () => {
 
   if (actionType === 'inventory') {
     return (
-      <div>
-        <div style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center' }}>
-          <button className="btn" onClick={resetForm} style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}>
-            ⬅ חזור לדשבורד מחסן
-          </button>
-        </div>
-        <EquipmentList />
-      </div>
+      <EquipmentList onBack={resetForm} />
     )
   }
 
@@ -238,7 +248,7 @@ const Warehouse = () => {
                     <label style={{ fontSize: '0.85rem', color: 'var(--primary-color)', display: 'block', marginBottom: '10px' }}>הציוד הנבחר תומך בפריטים נלווים, האם ברצונך לשייך?</label>
                     {equipmentLinkedTypes.map(type => {
                       const options = equipment
-                        .filter(e => !e.currentUser && e.type === type)
+                        .filter(e => !e.currentUser && e.type.includes(type))
                         .map(e => ({
                           label: `${e.type} (מק"ט: ${e.device_sn}) ${e.status !== 'תקין' ? `[${e.status}]` : ''}`,
                           value: e.id,
