@@ -87,10 +87,12 @@ const Settings = ({ setActiveTab }) => {
   }
 
   const handleShare = async () => {
+    const senderName = loggedUserDoc?.name || 'צוות ההנהלה';
     const shareData = {
-      title: 'QuickTrace',
-      text: 'היכנס למערכת ניהול הציוד שלנו:',
-      url: window.location.origin
+      title: 'QuickTrace - ניהול ציוד חוות',
+      text: `שלום! הוזמנת על ידי ${senderName} להתחבר למערכת QuickTrace לניהול הציוד, המלאי והעדרים בחווה.\nלחץ על הקישור כדי להתחבר:`,
+      // הוספת פרמטר ?v=5 עוקפת את הזיכרון (Cache) של וואטסאפ שמאלץ להציג את התמונה הישנה
+      url: `${window.location.origin}?v=5`
     };
 
     if (navigator.share) {
@@ -100,7 +102,7 @@ const Settings = ({ setActiveTab }) => {
         console.log('Share canceled or failed', err);
       }
     } else {
-      navigator.clipboard.writeText(shareData.url).then(() => {
+      navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`).then(() => {
         alert('הקישור הועתק ללוח! עכשיו תוכל להדביק אותו בוואטסאפ או במייל.');
       }).catch(err => {
         alert('שגיאה בהעתקת הקישור: ' + err);
