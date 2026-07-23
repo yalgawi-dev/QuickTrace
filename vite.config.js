@@ -12,8 +12,11 @@ export default defineConfig({
         manifest: {
           name: 'QuickTrace Equipment Manager',
           short_name: 'QuickTrace',
-        description: 'ניהול ציוד ומלאי לחברה',
-        theme_color: '#ffffff',
+          description: 'ניהול ציוד ומלאי לחברה',
+          theme_color: '#0f172a',
+          background_color: '#0f172a',
+          display: 'standalone',
+          start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
