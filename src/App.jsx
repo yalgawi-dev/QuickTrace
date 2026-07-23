@@ -53,10 +53,11 @@ function AppContent() {
         
         <div className="header-actions">
           <div className="user-profile-badge">
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              מחובר כ: <strong>{authUser.email}</strong> ({appRole === 'admin' ? 'מנהל' : appRole === 'editor' ? 'עורך' : 'צופה'})
+            <span style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+              <span style={{ fontSize: '0.75rem' }}>מחובר כ: {appRole === 'admin' ? 'מנהל' : appRole === 'editor' ? 'עורך' : 'צופה'}</span>
+              <strong style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>{authUser.email}</strong>
             </span>
-            <button onClick={logout} className="btn" style={{ background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '4px 12px', fontSize: '0.8rem' }}>
+            <button onClick={logout} className="btn" style={{ background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '2px 8px', fontSize: '0.75rem', height: 'fit-content' }}>
               התנתק
             </button>
           </div>
@@ -87,7 +88,7 @@ function AppContent() {
         {activeTab === 'settings' && hasPage('settings') && <Settings setActiveTab={setActiveTab} />}
       </main>
 
-      <footer style={{ textAlign: 'center', marginTop: 'auto', paddingTop: '30px', paddingBottom: '10px', fontSize: '0.8rem', color: 'var(--text-muted)', letterSpacing: '2px', fontWeight: 'bold' }}>
+      <footer className="app-footer">
         POWERED BY YEHUDA ALGAWI
       </footer>
     </div>
