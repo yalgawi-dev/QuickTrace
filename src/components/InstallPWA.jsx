@@ -5,7 +5,9 @@ const InstallPWA = () => {
   const [supportsPWA, setSupportsPWA] = useState(false);
   const [promptInstall, setPromptInstall] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    return localStorage.getItem('quicktrace_isInstalled') === 'true';
+  });
   const [showGuideModal, setShowGuideModal] = useState(false);
 
   useEffect(() => {
@@ -13,7 +15,10 @@ const InstallPWA = () => {
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    setIsInstalled(isStandalone);
+    if (isStandalone) {
+      setIsInstalled(true);
+      localStorage.setItem('quicktrace_isInstalled', 'true');
+    }
     
     if (isIosDevice) {
       setIsIOS(true);
@@ -25,9 +30,18 @@ const InstallPWA = () => {
       setPromptInstall(e);
     };
 
-    window.addEventListener("beforeinstallprompt", handler);
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      localStorage.setItem('quicktrace_isInstalled', 'true');
+    };
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
 
   const onClick = async evt => {
@@ -37,6 +51,7 @@ const InstallPWA = () => {
       const { outcome } = await promptInstall.userChoice;
       if (outcome === 'accepted') {
         setIsInstalled(true);
+        localStorage.setItem('quicktrace_isInstalled', 'true');
       }
       setPromptInstall(null);
     } else {
