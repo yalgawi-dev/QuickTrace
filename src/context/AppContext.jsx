@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import mockData from '../data/mockData.json';
+import { db, auth } from '../firebase';
+import { collection, onSnapshot, doc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const AppContext = createContext();
 
@@ -7,79 +9,130 @@ export const AppProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [history, setHistory] = useState([]);
-  const [appRole, setAppRole] = useState('admin');
+  const [isDbLoading, setIsDbLoading] = useState(true);
+  
+  // Auth & Roles
+  const [authUser, setAuthUser] = useState(null);
+  const [appRole, setAppRole] = useState(null); // 'admin', 'editor', 'viewer'
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loggedUserDoc, setLoggedUserDoc] = useState(null);
 
-  // Load initial mock data, but structure it for the new architecture
   useEffect(() => {
-    setUsers(mockData.users.map(u => ({ ...u, activeBatteries: 0 })));
-    
-    // Convert old mock equipment to new format (independent goggles)
-    const newEqList = [];
-    mockData.equipment.forEach(eq => {
-      newEqList.push({
-        id: eq.id,
-        type: eq.type,
-        device_sn: eq.device_sn,
-        status: eq.status,
-        notes: eq.notes,
-        purchaseDate: eq.purchaseDate || '',
-        warrantyExpiry: eq.warrantyExpiry || '',
-        nextCalibration: eq.nextCalibration || '',
-        currentUser: eq.currentUser
-      });
-      // If the old mock had a goggle attached, split it into a separate item
-      if (eq.goggles_sn) {
-        newEqList.push({
-          id: `g_${eq.id}`,
-          type: 'משקף',
-          device_sn: eq.goggles_sn,
-          status: 'תקין',
-          notes: '',
-          purchaseDate: '',
-          warrantyExpiry: '',
-          nextCalibration: '',
-          currentUser: eq.currentUser
-        });
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user);
+      if (!user) {
+        setAppRole(null);
+        setLoggedUserDoc(null);
+        setAuthLoading(false);
+      }
+    });
+    return () => unsubAuth();
+  }, []);
+
+  useEffect(() => {
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(usersData);
+      
+      if (authUser) {
+        const foundUser = usersData.find(u => u.email === authUser.email);
+        if (foundUser) {
+          setAppRole(foundUser.appRole || 'viewer');
+          setLoggedUserDoc(foundUser);
+        } else {
+          // First time this user logs in
+          const hasAdmin = usersData.some(u => u.appRole === 'admin');
+          const initialRole = !hasAdmin ? 'admin' : 'viewer';
+          const isSuperAdmin = !hasAdmin; // The very first admin gets superAdmin powers
+          
+          const newUserId = `u${Date.now()}`;
+          const newUserDoc = {
+            name: authUser.displayName || authUser.email?.split('@')[0] || 'Unknown',
+            email: authUser.email || '',
+            phone: authUser.phoneNumber || '',
+            role: 'משתמש אפליקציה',
+            appRole: initialRole,
+            isSuperAdmin: isSuperAdmin,
+            allowedPages: initialRole === 'admin' ? ['dashboard', 'warehouse', 'users', 'history', 'settings'] : ['dashboard'],
+            department: '',
+            isActive: true,
+            activeBatteries: 0,
+            onboarded: false // Force them to fill phone/role on first login
+          };
+          setDoc(doc(db, 'users', newUserId), newUserDoc);
+          setAppRole(initialRole);
+          setLoggedUserDoc({ id: newUserId, ...newUserDoc });
+        }
+        setAuthLoading(false);
       }
     });
 
-    setEquipment(newEqList);
-    setHistory(mockData.history);
-  }, []);
+    const unsubEq = onSnapshot(collection(db, 'equipment'), (snapshot) => {
+      setEquipment(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
 
-  const toggleRole = () => {
-    setAppRole(prev => prev === 'admin' ? 'user' : 'admin');
+    const unsubHist = onSnapshot(collection(db, 'history'), (snapshot) => {
+      const histData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      histData.sort((a, b) => new Date(b.date) - new Date(a.date));
+      setHistory(histData);
+      setIsDbLoading(false);
+    });
+
+    return () => {
+      unsubUsers();
+      unsubEq();
+      unsubHist();
+    };
+  }, [authUser]);
+
+  const logout = () => {
+    signOut(auth);
   };
 
-  const addUser = (user) => {
-    setUsers([...users, { ...user, id: `u${Date.now()}`, activeBatteries: 0 }]);
+  const addUser = async (user) => {
+    const newId = `u${Date.now()}`;
+    await setDoc(doc(db, 'users', newId), { 
+      ...user, 
+      activeBatteries: 0, 
+      appRole: user.appRole || 'viewer',
+      allowedPages: user.appRole === 'admin' ? ['dashboard', 'warehouse', 'users', 'history', 'settings'] : ['dashboard']
+    });
   };
 
-  const addEquipment = (eq) => {
+  const updateUser = async (updatedUser) => {
+    const { id, ...data } = updatedUser;
+    await updateDoc(doc(db, 'users', id), data);
+  };
+
+  const addEquipment = async (eq) => {
     const newEqId = `e${Date.now()}`;
-    setEquipment([...equipment, { ...eq, id: newEqId }]);
+    await setDoc(doc(db, 'equipment', newEqId), { ...eq });
     
     const now = new Date();
-    addHistoryEvent({
+    await addHistoryEvent({
       date: now.toLocaleDateString('he-IL'),
       time: now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
       device_sn: eq.device_sn,
-      employee: 'מנהל מערכת', // Should be the issuer/admin
+      employee: 'מנהל מערכת',
       event: `קליטת ציוד חדש למלאי - ${eq.type}`,
       details: `נרשם במערכת בסטטוס: ${eq.status}. ${eq.notes ? 'הערות: ' + eq.notes : ''}`
     });
   };
 
-  const updateEquipment = (updatedEq) => {
-    setEquipment(prev => prev.map(e => e.id === updatedEq.id ? updatedEq : e));
+  const updateEquipment = async (updatedEq) => {
+    const { id, ...data } = updatedEq;
+    await updateDoc(doc(db, 'equipment', id), data);
   };
 
-  const addHistoryEvent = (event) => {
-    setHistory(prev => [{ ...event, id: `h${Date.now()}_${Math.random().toString(36).substr(2, 5)}` }, ...prev]);
+  const addHistoryEvent = async (event) => {
+    const newId = `h${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    await setDoc(doc(db, 'history', newId), { 
+      ...event, 
+      timestamp: Date.now() 
+    });
   };
 
-  // Updates checkout to take batteries amount, status, date/time and issuer
-  const checkoutEquipment = (deviceId, userId, notes, batteriesTaken = 0, manualDate = null, manualTime = null, checkoutStatus = 'תקין', issuer = 'לא צוין') => {
+  const checkoutEquipment = async (deviceId, userId, notes, batteriesTaken = 0, manualDate = null, manualTime = null, checkoutStatus = 'תקין', issuer = 'לא צוין') => {
     const eq = equipment.find(e => e.id === deviceId);
     const user = users.find(u => u.id === userId);
     const now = new Date();
@@ -89,29 +142,31 @@ export const AppProvider = ({ children }) => {
       const parts = dateStr.split('-');
       if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
-
     const timeStr = manualTime || now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
-    // Update equipment
-    setEquipment(prev => prev.map(e => e.id === deviceId ? { ...e, currentUser: userId, status: checkoutStatus, notes } : e));
+    await updateDoc(doc(db, 'equipment', deviceId), {
+      currentUser: userId,
+      status: checkoutStatus,
+      notes: notes || eq.notes || ''
+    });
     
-    // Update user batteries
-    if (batteriesTaken > 0) {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, activeBatteries: (u.activeBatteries || 0) + batteriesTaken } : u));
+    if (batteriesTaken > 0 && user) {
+      await updateDoc(doc(db, 'users', userId), {
+        activeBatteries: (user.activeBatteries || 0) + batteriesTaken
+      });
     }
     
-    // Add history
-    addHistoryEvent({
+    await addHistoryEvent({
       date: dateStr,
       time: timeStr,
       device_sn: eq.device_sn,
-      employee: user.name,
+      employee: user ? user.name : 'לא ידוע',
       event: `משיכת ציוד - ${eq.type}`,
       details: `נלקח (סטטוס: ${checkoutStatus}). ${notes ? 'הערות: ' + notes : ''} ${batteriesTaken > 0 ? `(כולל ${batteriesTaken} סוללות)` : ''}. אושר ע"י: ${issuer}`
     });
   };
 
-  const returnEquipment = (deviceId, status, notes, batteriesReturned = 0, manualDate = null, manualTime = null, issuer = 'לא צוין') => {
+  const returnEquipment = async (deviceId, status, notes, batteriesReturned = 0, manualDate = null, manualTime = null, issuer = 'לא צוין') => {
     const eq = equipment.find(e => e.id === deviceId);
     const user = users.find(u => u.id === eq.currentUser);
     const now = new Date();
@@ -121,32 +176,37 @@ export const AppProvider = ({ children }) => {
       const parts = dateStr.split('-');
       if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
-
     const timeStr = manualTime || now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
-    // Update equipment
-    setEquipment(prev => prev.map(e => e.id === deviceId ? { ...e, currentUser: null, status, notes } : e));
+    await updateDoc(doc(db, 'equipment', deviceId), {
+      currentUser: null,
+      status: status || eq.status,
+      notes: notes || eq.notes || ''
+    });
     
-    // Update user batteries
     if (user && batteriesReturned > 0) {
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, activeBatteries: Math.max(0, (u.activeBatteries || 0) - batteriesReturned) } : u));
+      await updateDoc(doc(db, 'users', user.id), {
+        activeBatteries: Math.max(0, (user.activeBatteries || 0) - batteriesReturned)
+      });
     }
     
-    // Add history
-    addHistoryEvent({
+    await addHistoryEvent({
       date: dateStr,
       time: timeStr,
       device_sn: eq.device_sn,
       employee: user ? user.name : 'לא ידוע',
       event: `החזרת ${eq.type} - ${status}`,
-      details: `${notes} ${batteriesReturned > 0 ? `(הוחזרו ${batteriesReturned} סוללות)` : ''}. נמסר ל: ${issuer}`
+      details: `${notes || ''} ${batteriesReturned > 0 ? `(הוחזרו ${batteriesReturned} סוללות)` : ''}. נמסר ל: ${issuer}`
     });
   };
 
+  const seedDatabase = async () => {};
+
   return (
     <AppContext.Provider value={{
-      users, equipment, history, appRole,
-      toggleRole, addUser, addEquipment, updateEquipment, checkoutEquipment, returnEquipment
+      users, equipment, history, isDbLoading,
+      authUser, appRole, authLoading, logout, loggedUserDoc,
+      addUser, updateUser, addEquipment, updateEquipment, checkoutEquipment, returnEquipment, seedDatabase
     }}>
       {children}
     </AppContext.Provider>

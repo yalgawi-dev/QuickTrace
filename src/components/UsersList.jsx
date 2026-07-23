@@ -1,12 +1,48 @@
 import React, { useState } from 'react'
 import { useAppContext } from '../context/AppContext'
 
+const UserFormFields = ({ formData, setFormData }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+    <input required placeholder="שם מלא" className="input-field" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+    
+    <select className="input-field" value={['וטרינר', 'עובד מעבדה', 'מנהל אזור'].includes(formData.role) ? formData.role : 'other'} onChange={e => {
+      if (e.target.value !== 'other') {
+        setFormData({...formData, role: e.target.value});
+      } else {
+        setFormData({...formData, role: 'other'});
+      }
+    }}>
+      <option value="וטרינר">וטרינר</option>
+      <option value="עובד מעבדה">עובד מעבדה</option>
+      <option value="מנהל אזור">מנהל אזור</option>
+      <option value="other">תפקיד אחר...</option>
+    </select>
+    
+    {(!['וטרינר', 'עובד מעבדה', 'מנהל אזור'].includes(formData.role) || formData.role === 'other') && (
+      <input required placeholder='הזן תפקיד חדש...' className="input-field" value={formData.role === 'other' ? '' : formData.role} onChange={e => setFormData({...formData, role: e.target.value})} />
+    )}
+    
+    <input placeholder="מחלקה או אזור פעילות" className="input-field" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} />
+    <input type="email" placeholder="כתובת אימייל" className="input-field" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+    <input type="tel" required placeholder="טלפון נייד" className="input-field" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+    
+    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+      <input type="checkbox" checked={formData.isActive} onChange={e => setFormData({...formData, isActive: e.target.checked})} style={{ transform: 'scale(1.5)' }} />
+      משתמש פעיל במערכת
+    </label>
+  </div>
+)
+
 const UsersList = () => {
   const [search, setSearch] = useState('')
-  const { users, appRole, addUser } = useAppContext()
+  const { users, appRole, addUser, updateUser } = useAppContext()
   
   const [showAddModal, setShowAddModal] = useState(false)
-  const [newUser, setNewUser] = useState({ name: '', role: 'וטרינר', customRole: '', email: '', phone: '', department: '', isActive: true })
+  const [showEditModal, setShowEditModal] = useState(false)
+  
+  const initialUserState = { name: '', role: 'וטרינר', email: '', phone: '', department: '', isActive: true }
+  const [newUser, setNewUser] = useState(initialUserState)
+  const [editingUser, setEditingUser] = useState(null)
 
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -16,10 +52,21 @@ const UsersList = () => {
 
   const handleAddSubmit = (e) => {
     e.preventDefault()
-    const finalRole = newUser.role === 'other' ? newUser.customRole : newUser.role
-    addUser({ ...newUser, role: finalRole })
+    addUser(newUser)
     setShowAddModal(false)
-    setNewUser({ name: '', role: 'וטרינר', customRole: '', email: '', phone: '', department: '', isActive: true })
+    setNewUser(initialUserState)
+  }
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault()
+    updateUser(editingUser)
+    setShowEditModal(false)
+    setEditingUser(null)
+  }
+
+  const openEditModal = (user) => {
+    setEditingUser(user)
+    setShowEditModal(true)
   }
 
   return (
@@ -50,6 +97,7 @@ const UsersList = () => {
               <th>אימייל</th>
               <th>טלפון</th>
               <th>סטטוס</th>
+              {appRole === 'admin' && <th>פעולות</th>}
             </tr>
           </thead>
           <tbody>
@@ -65,43 +113,41 @@ const UsersList = () => {
                     {user.isActive ? 'פעיל' : 'לא פעיל'}
                   </span>
                 </td>
+                {appRole === 'admin' && (
+                  <td>
+                    <button className="btn" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={() => openEditModal(user)}>ערוך</button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Add User Modal */}
       {showAddModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div className="glass-panel" style={{ width: '400px', background: 'var(--background-dark)' }}>
             <h3>הוספת איש קשר חדש</h3>
-            <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
-              <input required placeholder="שם מלא" className="input-field" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} />
-              
-              <select className="input-field" value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}>
-                <option value="וטרינר">וטרינר</option>
-                <option value="עובד מעבדה">עובד מעבדה</option>
-                <option value="מנהל אזור">מנהל אזור</option>
-                <option value="other">תפקיד אחר...</option>
-              </select>
-              
-              {newUser.role === 'other' && (
-                <input required placeholder='הזן תפקיד חדש...' className="input-field" value={newUser.customRole} onChange={e => setNewUser({...newUser, customRole: e.target.value})} />
-              )}
-              
-              <input placeholder="מחלקה או אזור פעילות" className="input-field" value={newUser.department} onChange={e => setNewUser({...newUser, department: e.target.value})} />
-              <input type="email" placeholder="כתובת אימייל" className="input-field" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} />
-              <input type="tel" required placeholder="טלפון נייד" className="input-field" value={newUser.phone} onChange={e => setNewUser({...newUser, phone: e.target.value})} />
-              
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-                <input type="checkbox" checked={newUser.isActive} onChange={e => setNewUser({...newUser, isActive: e.target.checked})} style={{ transform: 'scale(1.5)' }} />
-                משתמש פעיל במערכת
-              </label>
-
+            <form onSubmit={handleAddSubmit}>
+              <UserFormFields formData={newUser} setFormData={setNewUser} />
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                 <button type="submit" className="btn" style={{ flex: 1 }}>שמור משתמש</button>
                 <button type="button" className="btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--text-muted)' }} onClick={() => setShowAddModal(false)}>ביטול</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editingUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="glass-panel" style={{ width: '400px', background: 'var(--background-dark)' }}>
+            <h3>עריכת איש קשר</h3>
+            <form onSubmit={handleEditSubmit}>
+              <UserFormFields formData={editingUser} setFormData={setEditingUser} />
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button type="submit" className="btn" style={{ flex: 1 }}>שמור שינויים</button>
+                <button type="button" className="btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--text-muted)' }} onClick={() => setShowEditModal(false)}>ביטול</button>
               </div>
             </form>
           </div>
@@ -112,3 +158,4 @@ const UsersList = () => {
 }
 
 export default UsersList
+

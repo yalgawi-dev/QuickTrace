@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import { useAppContext } from '../context/AppContext'
 
 const Dashboard = () => {
-  const { equipment, users, history } = useAppContext()
+  const { equipment, users, seedDatabase, appRole } = useAppContext()
   const [searchQuery, setSearchQuery] = useState('')
 
   // Helper to find equipment for a user
@@ -39,14 +39,18 @@ const Dashboard = () => {
   return (
     <div className="glass-panel" style={{ minHeight: '80vh' }}>
       <div className="flex-header">
-        <h2>מבט כללי - תמונת מצב חיה</h2>
-        
-        {/* Simple search for the table */}
-        <div style={{ width: '350px' }}>
+        <h2 style={{ marginBottom: 0 }}>📊 תמונת מצב בזמן אמת</h2>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {equipment.length === 0 && appRole === 'admin' && (
+            <button onClick={seedDatabase} className="btn" style={{ background: 'var(--success)' }}>
+              ☁️ שפוך נתוני דמו ל-Firebase
+            </button>
+          )}
           <input 
             type="text" 
             placeholder='חיפוש עובד, טלפון או מק"ט...' 
             className="input-field"
+            style={{ width: '300px' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

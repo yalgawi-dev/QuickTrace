@@ -210,8 +210,8 @@ const EquipmentList = ({ onBack }) => {
             <button className="btn" onClick={() => setShowAddModal(true)}>+ רשום ציוד חדש</button>
           )}
           {onBack && (
-            <button className="btn" onClick={onBack} style={{ background: 'transparent', border: '1px solid var(--text-muted)' }}>
-              ⬅ חזור לדשבורד מחסן
+            <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}>
+              חזרה <span style={{ fontSize: '1.2rem' }}>↩</span>
             </button>
           )}
         </div>
