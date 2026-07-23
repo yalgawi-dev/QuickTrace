@@ -6,12 +6,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'masked-icon.svg'],
-      manifest: {
-        name: 'QuickTrace Equipment Manager',
-        short_name: 'QuickTrace',
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.png', 'apple-touch-icon.png'],
+        manifest: {
+          name: 'QuickTrace Equipment Manager',
+          short_name: 'QuickTrace',
         description: 'ניהול ציוד ומלאי לחברה',
         theme_color: '#ffffff',
         icons: [

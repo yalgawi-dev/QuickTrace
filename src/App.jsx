@@ -8,6 +8,8 @@ import Warehouse from './components/Warehouse'
 import Login from './components/Login'
 import Settings from './components/Settings'
 import Onboarding from './components/Onboarding'
+import InstallPWA from './components/InstallPWA'
+import PermissionRequestModal from './components/PermissionRequestModal'
 import { AppProvider, useAppContext } from './context/AppContext'
 
 function AppContent() {
@@ -15,8 +17,9 @@ function AppContent() {
     return localStorage.getItem('quickTrace_activeTab') || 'dashboard'
   })
   const [warehouseKey, setWarehouseKey] = useState(0)
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   
-  const { appRole, authUser, authLoading, logout, loggedUserDoc } = useAppContext()
+  const { appRole, authUser, authLoading, logout, loggedUserDoc, addPermissionRequest } = useAppContext()
 
   useEffect(() => {
     if (activeTab) {
@@ -57,6 +60,11 @@ function AppContent() {
               <span style={{ fontSize: '0.75rem' }}>מחובר כ: {appRole === 'admin' ? 'מנהל' : appRole === 'editor' ? 'עורך' : 'צופה'}</span>
               <strong style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>{authUser.email}</strong>
             </span>
+            {appRole !== 'admin' && (
+              <button onClick={() => setIsRequestModalOpen(true)} className="btn" style={{ background: 'transparent', border: '1px solid var(--primary-color)', color: 'var(--primary-color)', padding: '2px 8px', fontSize: '0.75rem', height: 'fit-content' }}>
+                בקש הרשאה 🔒
+              </button>
+            )}
             <button onClick={logout} className="btn" style={{ background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)', padding: '2px 8px', fontSize: '0.75rem', height: 'fit-content' }}>
               התנתק
             </button>
@@ -81,6 +89,7 @@ function AppContent() {
       </header>
 
       <main>
+        <InstallPWA />
         {activeTab === 'dashboard' && hasPage('dashboard') && <Dashboard />}
         {activeTab === 'warehouse' && hasPage('warehouse') && <Warehouse key={warehouseKey} />}
         {activeTab === 'users' && hasPage('users') && <UsersList />}
@@ -91,6 +100,13 @@ function AppContent() {
       <footer className="app-footer">
         POWERED BY YEHUDA ALGAWI
       </footer>
+
+      {isRequestModalOpen && (
+        <PermissionRequestModal
+          onClose={() => setIsRequestModalOpen(false)}
+          onSubmit={addPermissionRequest}
+        />
+      )}
     </div>
   )
 }

@@ -35,7 +35,7 @@ const UserFormFields = ({ formData, setFormData }) => (
 
 const UsersList = () => {
   const [search, setSearch] = useState('')
-  const { users, appRole, addUser, updateUser } = useAppContext()
+  const { users, appRole, addUser, updateUser, requests, deletePermissionRequest } = useAppContext()
   
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -86,6 +86,33 @@ const UsersList = () => {
           )}
         </div>
       </div>
+
+      {appRole === 'admin' && requests.length > 0 && (
+        <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid var(--warning)', borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
+          <h3 style={{ color: 'var(--warning)', marginBottom: '10px' }}>בקשות הרשאה ממתינות ({requests.length})</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {requests.map(req => (
+              <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+                <div>
+                  <strong>{req.userName}</strong> ({req.userEmail}) ביקש/ה הרשאה ב-{new Date(req.timestamp).toLocaleDateString('he-IL')}:
+                  <p style={{ margin: '5px 0 0 0', color: 'var(--text-light)' }}>"{req.reason}"</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={() => {
+                    const userObj = users.find(u => u.id === req.userId);
+                    if (userObj) {
+                      openEditModal(userObj);
+                    } else {
+                      alert('משתמש לא נמצא');
+                    }
+                  }}>טפל (ערוך משתמש)</button>
+                  <button className="btn" style={{ padding: '5px 10px', fontSize: '0.8rem', background: 'transparent', border: '1px solid var(--error)', color: 'var(--error)' }} onClick={() => deletePermissionRequest(req.id)}>דחה / סגור</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="table-container">
         <table>

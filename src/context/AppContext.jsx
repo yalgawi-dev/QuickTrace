@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { collection, onSnapshot, doc, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, updateDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const AppContext = createContext();
@@ -9,6 +9,7 @@ export const AppProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [history, setHistory] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [isDbLoading, setIsDbLoading] = useState(true);
   
   // Auth & Roles
@@ -78,10 +79,15 @@ export const AppProvider = ({ children }) => {
       setIsDbLoading(false);
     });
 
+    const unsubReq = onSnapshot(collection(db, 'requests'), (snapshot) => {
+      setRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubUsers();
       unsubEq();
       unsubHist();
+      unsubReq();
     };
   }, [authUser]);
 
@@ -200,13 +206,30 @@ export const AppProvider = ({ children }) => {
     });
   };
 
+  const addPermissionRequest = async (reason) => {
+    if (!loggedUserDoc) return;
+    const newId = `req${Date.now()}`;
+    await setDoc(doc(db, 'requests', newId), {
+      userId: loggedUserDoc.id,
+      userName: loggedUserDoc.name,
+      userEmail: loggedUserDoc.email,
+      reason: reason,
+      timestamp: Date.now()
+    });
+  };
+
+  const deletePermissionRequest = async (requestId) => {
+    await deleteDoc(doc(db, 'requests', requestId));
+  };
+
   const seedDatabase = async () => {};
 
   return (
     <AppContext.Provider value={{
-      users, equipment, history, isDbLoading,
+      users, equipment, history, requests, isDbLoading,
       authUser, appRole, authLoading, logout, loggedUserDoc,
-      addUser, updateUser, addEquipment, updateEquipment, checkoutEquipment, returnEquipment, seedDatabase
+      addUser, updateUser, addEquipment, updateEquipment, checkoutEquipment, returnEquipment,
+      addPermissionRequest, deletePermissionRequest, seedDatabase
     }}>
       {children}
     </AppContext.Provider>
